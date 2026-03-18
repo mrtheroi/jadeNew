@@ -1,0 +1,22 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/Users/cesarvalero/Library/Application",
+            "args": [
+                "Support/Herd/bin/php84",
+                "/Users/cesarvalero/Documents/projects/jade/artisan",
+                "boost:mcp"
+            ]
+        },
+        "herd": {
+            "command": "/Users/cesarvalero/Library/Application",
+            "args": [
+                "Support/Herd/bin/php84",
+                "/Applications/Herd.app/Contents/Resources/herd-mcp.phar"
+            ],
+            "env": {
+                "SITE_PATH": "/Users/cesarvalero/Documents/projects/jade"
+            }
+        }
+    }
+}
