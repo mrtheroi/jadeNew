@@ -223,9 +223,9 @@ class DailySalesController extends Component
             $query->where('business_unit', 'like', "%{$this->search}%");
         }
 
-        $sales = $query->with('user')->orderByDesc('operation_date')->orderBy('turno')->paginate(15);
-
         $totalsQuery = (clone $query)->where('status', 'completed');
+
+        $sales = $query->with('user')->orderByDesc('operation_date')->orderBy('turno')->paginate(15);
 
         $totals = $totalsQuery->selectRaw('
             SUM(alimentos) as total_alimentos,
