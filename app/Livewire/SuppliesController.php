@@ -287,7 +287,7 @@ class SuppliesController extends Component
             return;
         }
 
-        $this->receiptUrl = $supply->receipt_url;
+        $this->receiptUrl = route('supplies.receipt', $supply);
         $this->showReceiptModal = true;
     }
 
