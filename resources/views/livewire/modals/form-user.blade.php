@@ -28,12 +28,10 @@
             <div class="flex">
                 <flux:spacer />
 
-                <flux:button type="submit"  wire:click="$set('open', false)">Cancel</flux:button>
-                @if($selected_id < 1)
-                    <flux:button type="submit" variant="primary" class="ml-2" wire:click.prevent="save">Save changes</flux:button>
-                @else
-                    <flux:button type="submit" variant="primary" wire:click.prevent="update" class="ml-2">Updated changes</flux:button>
-                @endif
+                <flux:button type="button" wire:click="closeModal">Cancelar</flux:button>
+                <flux:button type="button" variant="primary" class="ml-2" wire:click.prevent="save">
+                    {{ $selected_id ? 'Guardar cambios' : 'Crear usuario' }}
+                </flux:button>
             </div>
         </div>
     </flux:modal>
