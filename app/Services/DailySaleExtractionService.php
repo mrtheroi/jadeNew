@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\DailySale;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class DailySaleExtractionService
 {
@@ -21,9 +22,16 @@ class DailySaleExtractionService
     {
         $fileName = $file->getClientOriginalName();
 
+        // Read file contents — Livewire temp files need to be read via Storage
+        if ($file instanceof TemporaryUploadedFile) {
+            $fileContents = $file->get();
+        } else {
+            $fileContents = $file->getContent();
+        }
+
         // Step 1: Upload file to LlamaIndex
         $uploadResponse = $this->llamaIndexService->uploadFile(
-            $file->getContent(),
+            $fileContents,
             $fileName,
         );
 
