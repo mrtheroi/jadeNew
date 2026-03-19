@@ -46,6 +46,24 @@ class DailySalesController extends Component
     // Delete
     public ?int $deleteId = null;
 
+    // Reconciliation modal
+    public bool $showReconciliationModal = false;
+
+    public ?DailySale $reconciliationSale = null;
+
+    public array $corte = [
+        'efectivo_monto' => '',
+        'efectivo_propina' => '',
+        'debito_monto' => '',
+        'debito_propina' => '',
+        'credito_monto' => '',
+        'credito_propina' => '',
+        'credito_cliente_monto' => '',
+        'credito_cliente_propina' => '',
+    ];
+
+    public string $reconciliationNotes = '';
+
     public function mount(): void
     {
         $this->period_key = now()->format('Y-m');
@@ -155,6 +173,65 @@ class DailySalesController extends Component
     {
         $this->showDetailModal = false;
         $this->detailSale = null;
+    }
+
+    public function openReconciliation(int $id): void
+    {
+        $this->reconciliationSale = DailySale::findOrFail($id);
+
+        // Pre-fill with existing data if already reconciled
+        if ($this->reconciliationSale->reconciliation_data) {
+            $this->corte = array_merge($this->corte, $this->reconciliationSale->reconciliation_data);
+        } else {
+            $this->corte = array_fill_keys(array_keys($this->corte), '');
+        }
+
+        $this->reconciliationNotes = $this->reconciliationSale->reconciliation_notes ?? '';
+        $this->showReconciliationModal = true;
+    }
+
+    public function closeReconciliation(): void
+    {
+        $this->showReconciliationModal = false;
+        $this->reconciliationSale = null;
+        $this->corte = array_fill_keys(array_keys($this->corte), '');
+        $this->reconciliationNotes = '';
+    }
+
+    public function saveReconciliation(): void
+    {
+        if (! $this->reconciliationSale) {
+            return;
+        }
+
+        $corteData = array_map(fn ($v) => $v === '' ? null : (float) $v, $this->corte);
+
+        // Calculate total difference
+        $fields = ['efectivo_monto', 'efectivo_propina', 'debito_monto', 'debito_propina', 'credito_monto', 'credito_propina', 'credito_cliente_monto', 'credito_cliente_propina'];
+        $totalDiff = 0;
+
+        foreach ($fields as $field) {
+            if ($corteData[$field] !== null) {
+                $totalDiff += $corteData[$field] - (float) $this->reconciliationSale->{$field};
+            }
+        }
+
+        $status = abs($totalDiff) < 0.01 ? 'reconciled' : 'discrepancy';
+
+        $this->reconciliationSale->update([
+            'reconciliation_status' => $status,
+            'reconciliation_data' => $corteData,
+            'reconciliation_notes' => $this->reconciliationNotes ?: null,
+            'reconciled_at' => now(),
+            'reconciled_by' => auth()->id(),
+        ]);
+
+        $this->dispatch('notify',
+            message: $status === 'reconciled' ? 'Cuadre completado correctamente.' : 'Cuadre guardado con diferencias.',
+            type: $status === 'reconciled' ? 'success' : 'warning'
+        );
+
+        $this->closeReconciliation();
     }
 
     public function deleteConfirmation(int $id): void

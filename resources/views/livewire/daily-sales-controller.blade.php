@@ -156,6 +156,9 @@
                         <th class="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Bebidas</th>
                         <th class="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Otros</th>
                         <th class="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Total</th>
+                        <th class="px-3 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Personas</th>
+                        <th class="px-3 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Ticket Prom.</th>
+                        <th class="px-3 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Cuadre</th>
                         <th class="py-3.5 pr-4 pl-3 text-right sm:pr-6">
                             <span class="sr-only">Acciones</span>
                         </th>
@@ -220,8 +223,31 @@
                                 <td class="whitespace-nowrap px-3 py-3 text-right text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                                     $ {{ number_format((float) $sale->total, 2) }}
                                 </td>
+                                <td class="whitespace-nowrap px-3 py-3 text-center text-sm text-gray-900 dark:text-white">
+                                    {{ $sale->numero_personas ?? '-' }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-3 text-right text-sm text-gray-900 dark:text-white">
+                                    $ {{ number_format((float) $sale->promedio_por_persona, 2) }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-3 text-center text-sm">
+                                    @if($sale->isReconciled())
+                                        <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-500/30">
+                                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                            OK
+                                        </span>
+                                    @elseif($sale->hasDiscrepancy())
+                                        <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-500/30">
+                                            <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+                                            Dif.
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-300/40 dark:bg-gray-800/50 dark:text-gray-400 dark:ring-gray-600/30">
+                                            Pendiente
+                                        </span>
+                                    @endif
+                                </td>
                             @else
-                                <td class="whitespace-nowrap px-3 py-3 text-right text-sm text-gray-400 dark:text-gray-500" colspan="4">
+                                <td class="whitespace-nowrap px-3 py-3 text-right text-sm text-gray-400 dark:text-gray-500" colspan="7">
                                     @if($sale->isProcessing())
                                         <span class="italic">En proceso...</span>
                                     @else
@@ -240,6 +266,15 @@
                                             aria-label="Ver detalle"
                                         >
                                             <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="openReconciliation({{ $sale->id }})"
+                                            class="group relative inline-flex items-center justify-center rounded-md p-2 text-indigo-600 hover:bg-indigo-50
+                                                   dark:text-indigo-300 dark:hover:bg-indigo-900/30 transition"
+                                            aria-label="Cuadre de caja"
+                                        >
+                                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z" /></svg>
                                         </button>
                                     @endif
 
@@ -307,5 +342,6 @@
     {{-- MODALS --}}
     @include('livewire.modals.form-daily-sales')
     @include('livewire.modals.detail-daily-sales')
+    @include('livewire.modals.reconciliation')
 
 </div>
