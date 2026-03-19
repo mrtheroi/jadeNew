@@ -32,7 +32,7 @@ class Supply extends Model
             return null;
         }
 
-        return Storage::disk('s3')->temporaryUrl($this->receipt_path, now()->addMinutes(30));
+        return Storage::disk('public')->url($this->receipt_path);
     }
 
     public function category()

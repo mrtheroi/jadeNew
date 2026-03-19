@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    Storage::fake('s3');
+    Storage::fake('public');
     $this->user = User::factory()->create();
     $this->category = Category::factory()->create(['business_unit' => 'Jade']);
 });
@@ -34,7 +34,7 @@ test('supply can be created with receipt image', function () {
         ->and($supply->receipt_path)->not->toBeNull()
         ->and($supply->receipt_path)->toStartWith('receipts/');
 
-    Storage::disk('s3')->assertExists($supply->receipt_path);
+    Storage::disk('public')->assertExists($supply->receipt_path);
 });
 
 test('supply can be created without receipt image', function () {
@@ -71,7 +71,7 @@ test('supply receipt can be replaced on edit', function () {
     $supply = Supply::first();
     $oldPath = $supply->receipt_path;
 
-    Storage::disk('s3')->assertExists($oldPath);
+    Storage::disk('public')->assertExists($oldPath);
 
     // Edit and replace with new image
     $newImage = UploadedFile::fake()->image('new_receipt.png', 600, 400);
@@ -87,8 +87,8 @@ test('supply receipt can be replaced on edit', function () {
 
     expect($supply->receipt_path)->not->toBe($oldPath);
 
-    Storage::disk('s3')->assertMissing($oldPath);
-    Storage::disk('s3')->assertExists($supply->receipt_path);
+    Storage::disk('public')->assertMissing($oldPath);
+    Storage::disk('public')->assertExists($supply->receipt_path);
 });
 
 test('supply receipt is deleted when supply is destroyed', function () {
@@ -107,7 +107,7 @@ test('supply receipt is deleted when supply is destroyed', function () {
     $supply = Supply::first();
     $receiptPath = $supply->receipt_path;
 
-    Storage::disk('s3')->assertExists($receiptPath);
+    Storage::disk('public')->assertExists($receiptPath);
 
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
@@ -115,7 +115,7 @@ test('supply receipt is deleted when supply is destroyed', function () {
 
     expect(Supply::find($supply->id))->toBeNull();
 
-    Storage::disk('s3')->assertMissing($receiptPath);
+    Storage::disk('public')->assertMissing($receiptPath);
 });
 
 test('receipt validation rejects non-image files', function () {
@@ -152,7 +152,7 @@ test('show receipt modal displays for supply with image', function () {
         'receipt_path' => 'receipts/test_image.jpg',
     ]);
 
-    Storage::disk('s3')->put('receipts/test_image.jpg', 'fake-image-content');
+    Storage::disk('public')->put('receipts/test_image.jpg', 'fake-image-content');
 
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)

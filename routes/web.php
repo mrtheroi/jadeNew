@@ -7,9 +7,7 @@ use App\Livewire\ExpenseTypeController;
 use App\Livewire\SalesDashboard;
 use App\Livewire\SuppliesController;
 use App\Livewire\UserController;
-use App\Models\Supply;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
 
@@ -44,29 +42,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('ventas', DailySalesController::class)->name('ventas');
     Route::get('categories', CategoryController::class)->name('categories');
     Route::get('supplies', SuppliesController::class)->name('supplies');
-    Route::get('supplies/{supply}/receipt', function (Supply $supply) {
-        abort_unless($supply->receipt_path, 404);
 
-        $content = Storage::disk('s3')->get($supply->receipt_path);
-        abort_unless($content, 404);
-
-        $mimeTypes = [
-            'jpg' => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            'bmp' => 'image/bmp',
-        ];
-
-        $extension = strtolower(pathinfo($supply->receipt_path, PATHINFO_EXTENSION));
-        $mime = $mimeTypes[$extension] ?? 'application/octet-stream';
-
-        return response($content, 200, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'private, max-age=3600',
-        ]);
-    })->name('supplies.receipt');
     Route::get('expense-types', ExpenseTypeController::class)->name('expense-types');
     Route::redirect('settings', 'settings/profile');
 

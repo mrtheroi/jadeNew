@@ -287,7 +287,7 @@ class SuppliesController extends Component
             return;
         }
 
-        $this->receiptUrl = route('supplies.receipt', $supply);
+        $this->receiptUrl = Storage::disk('public')->url($supply->receipt_path);
         $this->showReceiptModal = true;
     }
 
@@ -374,18 +374,18 @@ class SuppliesController extends Component
         if ($this->receipt) {
             // Delete old receipt if replacing
             if ($supply->receipt_path) {
-                Storage::disk('s3')->delete($supply->receipt_path);
+                Storage::disk('public')->delete($supply->receipt_path);
             }
 
             $path = $this->receipt->storeAs(
                 'receipts',
                 $supply->id.'_'.now()->timestamp.'.'.$this->receipt->getClientOriginalExtension(),
-                's3'
+                'public'
             );
 
             $supply->update(['receipt_path' => $path]);
         } elseif ($this->removeReceipt && $supply->receipt_path) {
-            Storage::disk('s3')->delete($supply->receipt_path);
+            Storage::disk('public')->delete($supply->receipt_path);
             $supply->update(['receipt_path' => null]);
         }
 
@@ -408,7 +408,7 @@ class SuppliesController extends Component
         $supply = Supply::findOrFail($id);
 
         if ($supply->receipt_path) {
-            Storage::disk('s3')->delete($supply->receipt_path);
+            Storage::disk('public')->delete($supply->receipt_path);
         }
 
         $supply->delete();
