@@ -28,13 +28,10 @@ class ProcessLlamaExtractionJob implements ShouldQueue
     public function handle(LlamaIndexService $llamaIndexService): void
     {
         try {
-            // Move file to public storage so LlamaIndex can access it via URL
-            $publicPath = 'extractions/'.$this->dailySale->id.'_'.$this->fileName;
-            Storage::disk('public')->put($publicPath, file_get_contents($this->filePath));
+            // filePath is now an S3/R2 relative path (e.g. "extractions/1_file.pdf")
+            $fileUrl = Storage::disk('s3')->url($this->filePath);
 
-            $fileUrl = url(Storage::disk('public')->url($publicPath));
-
-            Log::info('ProcessLlamaExtractionJob: File stored publicly.', [
+            Log::info('ProcessLlamaExtractionJob: Using public file.', [
                 'daily_sale_id' => $this->dailySale->id,
                 'file_url' => $fileUrl,
             ]);
@@ -71,10 +68,8 @@ class ProcessLlamaExtractionJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
         } finally {
-            // Clean up temp file
-            if (file_exists($this->filePath)) {
-                unlink($this->filePath);
-            }
+            // Clean up the S3/R2 file
+            Storage::disk('s3')->delete($this->filePath);
         }
     }
 
@@ -90,8 +85,6 @@ class ProcessLlamaExtractionJob implements ShouldQueue
             'error' => $exception?->getMessage(),
         ]);
 
-        if (file_exists($this->filePath)) {
-            unlink($this->filePath);
-        }
+        Storage::disk('s3')->delete($this->filePath);
     }
 }

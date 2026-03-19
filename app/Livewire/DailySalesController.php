@@ -129,9 +129,6 @@ class DailySalesController extends Component
         }
 
         try {
-            // Store file temporarily
-            $tempPath = $this->file->store('tmp-extractions');
-            $fullPath = storage_path('app/private/'.$tempPath);
             $fileName = $this->file->getClientOriginalName();
 
             // Create DailySale with processing status
@@ -143,8 +140,12 @@ class DailySalesController extends Component
                 'user_id' => auth()->id(),
             ]);
 
-            // Dispatch job
-            ProcessLlamaExtractionJob::dispatch($dailySale, $fullPath, $fileName);
+            // Store file to S3/R2 so the queue worker and LlamaIndex can access it
+            $s3Path = 'extractions/'.$dailySale->id.'_'.$fileName;
+            $this->file->storeAs('extractions', $dailySale->id.'_'.$fileName, 's3');
+
+            // Dispatch job with the S3 path
+            ProcessLlamaExtractionJob::dispatch($dailySale, $s3Path, $fileName);
 
             $this->dispatch('notify', message: 'Archivo enviado a procesar.', type: 'success');
             $this->closeModal();
