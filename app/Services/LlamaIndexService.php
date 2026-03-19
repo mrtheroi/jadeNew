@@ -79,12 +79,15 @@ class LlamaIndexService
     /**
      * Get an extraction job with its results.
      */
-    public function getExtractJob(string $jobId): Response
+    /**
+     * Get the extraction result for a completed job.
+     */
+    public function getExtractJobResult(string $jobId): Response
     {
-        Log::info('LlamaIndex: Fetching extraction job.', ['job_id' => $jobId]);
+        Log::info('LlamaIndex: Fetching extraction job result.', ['job_id' => $jobId]);
 
         $response = Http::withToken($this->apiKey)
-            ->get("{$this->baseUrl}/extraction/jobs/{$jobId}");
+            ->get("{$this->baseUrl}/extraction/jobs/{$jobId}/result");
 
         Log::info('LlamaIndex: Extraction job result.', [
             'job_id' => $jobId,

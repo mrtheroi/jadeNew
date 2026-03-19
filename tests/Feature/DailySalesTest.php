@@ -232,11 +232,11 @@ test('webhook extract.success updates daily sale to completed', function () {
     ];
 
     $this->mock(\App\Services\LlamaIndexService::class, function ($mock) use ($mockResult) {
-        $mock->shouldReceive('getExtractJob')
+        $mock->shouldReceive('getExtractJobResult')
             ->with('job_test123')
             ->once()
             ->andReturn(new \Illuminate\Http\Client\Response(
-                new \GuzzleHttp\Psr7\Response(200, [], json_encode($mockResult))
+                new \GuzzleHttp\Psr7\Response(200, [], json_encode(['data' => $mockResult]))
             ));
     });
 

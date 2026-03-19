@@ -50,11 +50,10 @@ class LlamaWebhookController extends Controller
         ]);
 
         if ($eventType === 'extract.success') {
-            $resultResponse = $llamaIndexService->getExtractJob($jobId);
+            $resultResponse = $llamaIndexService->getExtractJobResult($jobId);
 
             if ($resultResponse->successful()) {
-                $fullResponse = $resultResponse->json();
-                $resultData = $fullResponse['extract_result'] ?? $fullResponse;
+                $resultData = $resultResponse->json('data');
                 $mappedData = $mapper->map($resultData);
 
                 $dailySale->update(array_merge($mappedData, [
