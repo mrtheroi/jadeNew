@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Jobs\ProcessLlamaExtractionJob;
 use App\Models\DailySale;
+use App\Services\DailySaleExtractionService;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Rule;
 use Livewire\Attributes\Url;
@@ -106,32 +106,28 @@ class DailySalesController extends Component
 
         // Check if completed record already exists for this combo
         $existing = DailySale::where('business_unit', $this->business_unit)
-            ->where('operation_date', $this->operation_date)
+            ->whereDate('operation_date', $this->operation_date)
             ->where('turno', $this->turno)
             ->first();
 
-        if ($existing && $existing->isCompleted()) {
-            $this->addError('file', 'Ya existe un registro completado para esta unidad, fecha y turno.');
+        if ($existing) {
+            if ($existing->isCompleted()) {
+                $this->addError('file', 'Ya existe un registro completado para esta unidad, fecha y turno.');
 
-            return;
-        }
+                return;
+            }
 
-        // If failed record exists, delete it for retry
-        if ($existing && $existing->isFailed()) {
+            if ($existing->isProcessing()) {
+                $this->addError('file', 'Ya hay un archivo en proceso para esta unidad, fecha y turno.');
+
+                return;
+            }
+
+            // Failed record — delete it for retry
             $existing->delete();
         }
 
-        // If processing record exists, don't allow another upload
-        if ($existing && $existing->isProcessing()) {
-            $this->addError('file', 'Ya hay un archivo en proceso para esta unidad, fecha y turno.');
-
-            return;
-        }
-
         try {
-            $fileName = $this->file->getClientOriginalName();
-
-            // Create DailySale with processing status
             $dailySale = DailySale::create([
                 'business_unit' => $this->business_unit,
                 'operation_date' => $this->operation_date,
@@ -140,12 +136,7 @@ class DailySalesController extends Component
                 'user_id' => auth()->id(),
             ]);
 
-            // Store file to S3/R2 so the queue worker and LlamaIndex can access it
-            $s3Path = 'extractions/'.$dailySale->id.'_'.$fileName;
-            $this->file->storeAs('extractions', $dailySale->id.'_'.$fileName, 's3');
-
-            // Dispatch job with the S3 path
-            ProcessLlamaExtractionJob::dispatch($dailySale, $s3Path, $fileName);
+            app(DailySaleExtractionService::class)->process($dailySale, $this->file);
 
             $this->dispatch('notify', message: 'Archivo enviado a procesar.', type: 'success');
             $this->closeModal();

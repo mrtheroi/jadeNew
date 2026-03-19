@@ -35,9 +35,9 @@ return [
         ],
     ],
     'llama_index' => [
-        'base_url' => env('LLAMA_INDEX_BASE_URL', 'https://api.cloud.llamaindex.ai/api/v2'),
+        'base_url' => env('LLAMA_INDEX_BASE_URL', 'https://api.cloud.llamaindex.ai/api/v1'),
         'api_key' => env('LLAMA_INDEX_API_KEY'),
-        'configuration_id' => env('LLAMA_INDEX_CONFIGURATION_ID', env('LLAMA_INDEX_EXTRACTION_AGENT_ID')),
+        'extraction_agent_id' => env('LLAMA_INDEX_EXTRACTION_AGENT_ID'),
     ],
 
 ];

@@ -16,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
             return new LlamaIndexService(
                 baseUrl: config('services.llama_index.base_url'),
                 apiKey: config('services.llama_index.api_key'),
-                configurationId: config('services.llama_index.configuration_id'),
+                extractionAgentId: config('services.llama_index.extraction_agent_id'),
             );
         });
     }

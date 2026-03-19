@@ -1,12 +1,11 @@
 <?php
 
-use App\Jobs\ProcessLlamaExtractionJob;
 use App\Livewire\DailySalesController;
 use App\Models\DailySale;
 use App\Models\User;
 use App\Services\DailySaleExtractionMapper;
+use App\Services\DailySaleExtractionService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 test('guests are redirected from ventas page', function () {
@@ -83,10 +82,12 @@ test('ventas page filters by period', function () {
         ->assertDontSee('4,000.00');
 });
 
-test('upload pdf creates daily sale with processing status and dispatches job', function () {
-    Queue::fake();
-    $user = User::factory()->create();
+test('upload pdf creates daily sale with processing status and calls extraction service', function () {
+    $this->mock(DailySaleExtractionService::class)
+        ->shouldReceive('process')
+        ->once();
 
+    $user = User::factory()->create();
     $file = UploadedFile::fake()->create('reporte.pdf', 1024, 'application/pdf');
 
     Livewire::actingAs($user)
@@ -104,12 +105,12 @@ test('upload pdf creates daily sale with processing status and dispatches job', 
     expect($sale)->not->toBeNull()
         ->and($sale->status)->toBe('processing')
         ->and($sale->user_id)->toBe($user->id);
-
-    Queue::assertPushed(ProcessLlamaExtractionJob::class);
 });
 
 test('upload pdf rejects duplicate completed record', function () {
-    Queue::fake();
+    $this->mock(DailySaleExtractionService::class)
+        ->shouldNotReceive('process');
+
     $user = User::factory()->create();
 
     DailySale::factory()->create([
@@ -129,17 +130,19 @@ test('upload pdf rejects duplicate completed record', function () {
         ->set('file', $file)
         ->call('uploadPdf')
         ->assertHasErrors('file');
-
-    Queue::assertNotPushed(ProcessLlamaExtractionJob::class);
 });
 
 test('upload pdf allows retry for failed record', function () {
-    Queue::fake();
+    $this->mock(DailySaleExtractionService::class)
+        ->shouldReceive('process')
+        ->once();
+
     $user = User::factory()->create();
+    $date = now()->format('Y-m-d');
 
     $failed = DailySale::factory()->failed()->create([
         'business_unit' => 'Jade',
-        'operation_date' => now()->format('Y-m-d'),
+        'operation_date' => $date,
         'turno' => 1,
     ]);
 
@@ -148,15 +151,13 @@ test('upload pdf allows retry for failed record', function () {
     Livewire::actingAs($user)
         ->test(DailySalesController::class)
         ->set('business_unit', 'Jade')
-        ->set('operation_date', now()->format('Y-m-d'))
+        ->set('operation_date', $date)
         ->set('turno', 1)
         ->set('file', $file)
         ->call('uploadPdf');
 
     expect(DailySale::find($failed->id))->toBeNull();
-    expect(DailySale::where('business_unit', 'Jade')->where('turno', 1)->where('status', 'processing')->count())->toBe(1);
-
-    Queue::assertPushed(ProcessLlamaExtractionJob::class);
+    expect(DailySale::where('business_unit', 'Jade')->whereDate('operation_date', $date)->where('turno', 1)->where('status', 'processing')->count())->toBe(1);
 });
 
 test('destroy rejects completed records', function () {

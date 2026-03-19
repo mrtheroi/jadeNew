@@ -13,38 +13,28 @@ class LlamaIndexService
     public function __construct(
         private readonly string $baseUrl,
         private readonly string $apiKey,
-        private readonly string $configurationId,
+        private readonly string $extractionAgentId,
     ) {}
 
     /**
-     * Create an extraction job using a URL directly (v2 API).
-     *
-     * @param  array<int, array<string, mixed>>|null  $webhookConfigurations
+     * Upload a file to LlamaIndex Cloud.
      */
-    public function createExtractJob(string $fileUrl, ?array $webhookConfigurations = null): Response
+    public function uploadFile(string $fileContents, string $fileName): Response
     {
-        Log::info('Creating LlamaIndex v2 extract job.', [
-            'file_url' => $fileUrl,
-            'configuration_id' => $this->configurationId,
-            'has_webhook' => $webhookConfigurations !== null,
+        Log::info('LlamaIndex: Uploading file.', [
+            'file_name' => $fileName,
         ]);
 
-        $body = [
-            'type' => 'url',
-            'value' => $fileUrl,
-            'configuration_id' => $this->configurationId,
-        ];
-
-        if ($webhookConfigurations !== null) {
-            $body['webhook_configurations'] = $webhookConfigurations;
-        }
-
         $response = Http::withToken($this->apiKey)
-            ->post("{$this->baseUrl}/extract", $body);
+            ->attach('file', $fileContents, $fileName)
+            ->post("{$this->baseUrl}/beta/files", [
+                'purpose' => 'extract',
+            ]);
 
-        Log::info('LlamaIndex v2 extract job response.', [
+        Log::info('LlamaIndex: File upload response.', [
             'status' => $response->status(),
             'successful' => $response->successful(),
+            'file_id' => $response->successful() ? $response->json('id') : null,
             'body' => $response->failed() ? $response->body() : null,
         ]);
 
@@ -52,16 +42,51 @@ class LlamaIndexService
     }
 
     /**
-     * Get an extraction job with its results (v2 API).
+     * Create an extraction job using a file_id and the configured extraction agent.
+     *
+     * @param  array<int, array<string, mixed>>|null  $webhookConfigurations
+     */
+    public function createExtractJob(string $fileId, ?array $webhookConfigurations = null): Response
+    {
+        Log::info('LlamaIndex: Creating extraction job.', [
+            'file_id' => $fileId,
+            'extraction_agent_id' => $this->extractionAgentId,
+            'has_webhook' => $webhookConfigurations !== null,
+        ]);
+
+        $body = [
+            'extraction_agent_id' => $this->extractionAgentId,
+            'file_id' => $fileId,
+        ];
+
+        if ($webhookConfigurations !== null) {
+            $body['webhook_configurations'] = $webhookConfigurations;
+        }
+
+        $response = Http::withToken($this->apiKey)
+            ->post("{$this->baseUrl}/extraction/jobs", $body);
+
+        Log::info('LlamaIndex: Extraction job response.', [
+            'status' => $response->status(),
+            'successful' => $response->successful(),
+            'job_id' => $response->successful() ? $response->json('id') : null,
+            'body' => $response->failed() ? $response->body() : null,
+        ]);
+
+        return $response;
+    }
+
+    /**
+     * Get an extraction job with its results.
      */
     public function getExtractJob(string $jobId): Response
     {
-        Log::info('Fetching extraction job.', ['job_id' => $jobId]);
+        Log::info('LlamaIndex: Fetching extraction job.', ['job_id' => $jobId]);
 
         $response = Http::withToken($this->apiKey)
-            ->get("{$this->baseUrl}/extract/{$jobId}");
+            ->get("{$this->baseUrl}/extraction/jobs/{$jobId}");
 
-        Log::info('LlamaIndex v2 extract job result response.', [
+        Log::info('LlamaIndex: Extraction job result.', [
             'job_id' => $jobId,
             'status' => $response->status(),
             'successful' => $response->successful(),
