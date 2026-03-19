@@ -1,10 +1,22 @@
 {{-- MODAL: Cuadre de caja --}}
 @if($showReconciliationModal && $reconciliationSale)
+    @php
+        $isReadOnly = $reconciliationSale->reconciliation_status !== null;
+    @endphp
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeReconciliation">
         <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-lg dark:bg-gray-900">
             <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Cuadre de Caja</h3>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        Cuadre de Caja
+                        @if($isReadOnly)
+                            @if($reconciliationSale->isReconciled())
+                                <span class="ml-2 inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-900/30 dark:text-green-300">Cuadrado</span>
+                            @elseif($reconciliationSale->hasDiscrepancy())
+                                <span class="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-300">Con diferencia</span>
+                            @endif
+                        @endif
+                    </h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400">
                         {{ $reconciliationSale->business_unit }} &middot; {{ $reconciliationSale->operation_date->format('Y-m-d') }} &middot; {{ $reconciliationSale->turnoLabel() }}
                     </p>
@@ -22,7 +34,7 @@
 
             <div class="p-4 space-y-4">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm" x-data>
+                    <table class="min-w-full text-sm">
                         <thead>
                             <tr class="border-b border-gray-200 dark:border-white/10">
                                 <th class="py-2 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Concepto</th>
@@ -50,7 +62,7 @@
                             @foreach($rows as $row)
                                 @php
                                     $sistema = (float) $reconciliationSale->{$row['field']};
-                                    $corteVal = $corte[$row['field']] !== '' ? (float) $corte[$row['field']] : null;
+                                    $corteVal = $corte[$row['field']] !== '' && $corte[$row['field']] !== null ? (float) $corte[$row['field']] : null;
                                     $diff = $corteVal !== null ? $corteVal - $sistema : null;
                                     $totalSistema += $sistema;
                                     if ($corteVal !== null) {
@@ -63,15 +75,25 @@
                                         $ {{ number_format($sistema, 2) }}
                                     </td>
                                     <td class="px-3 py-2 text-right">
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            wire:model.blur="corte.{{ $row['field'] }}"
-                                            placeholder="0.00"
-                                            class="w-28 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-right text-sm font-mono text-gray-900
-                                                   focus:border-indigo-500 focus:ring-indigo-500
-                                                   dark:border-white/15 dark:bg-gray-800 dark:text-white"
-                                        />
+                                        @if($isReadOnly)
+                                            <span class="font-mono text-gray-900 dark:text-white">
+                                                @if($corteVal !== null)
+                                                    $ {{ number_format($corteVal, 2) }}
+                                                @else
+                                                    <span class="text-gray-400">-</span>
+                                                @endif
+                                            </span>
+                                        @else
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                wire:model.blur="corte.{{ $row['field'] }}"
+                                                placeholder="0.00"
+                                                class="w-28 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-right text-sm font-mono text-gray-900
+                                                       focus:border-indigo-500 focus:ring-indigo-500
+                                                       dark:border-white/15 dark:bg-gray-800 dark:text-white"
+                                            />
+                                        @endif
                                     </td>
                                     <td class="pl-3 py-2 text-right font-mono text-sm
                                         @if($diff !== null)
@@ -92,7 +114,7 @@
                         <tfoot class="border-t-2 border-gray-300 dark:border-white/20">
                             @php
                                 $totalDiff = $totalCorte - $totalSistema;
-                                $anyCorteValue = collect($corte)->contains(fn ($v) => $v !== '');
+                                $anyCorteValue = collect($corte)->contains(fn ($v) => $v !== '' && $v !== null);
                             @endphp
                             <tr class="font-semibold">
                                 <td class="py-2 pr-3 text-gray-900 dark:text-white">Total</td>
@@ -127,20 +149,26 @@
                 {{-- Notas --}}
                 <div>
                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Observaciones</label>
-                    <textarea
-                        wire:model="reconciliationNotes"
-                        rows="2"
-                        placeholder="Notas sobre el cuadre (opcional)"
-                        class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm
-                               focus:border-indigo-500 focus:ring-indigo-500
-                               dark:border-white/15 dark:bg-gray-800 dark:text-white"
-                    ></textarea>
+                    @if($isReadOnly)
+                        <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                            {{ $reconciliationNotes ?: 'Sin observaciones.' }}
+                        </p>
+                    @else
+                        <textarea
+                            wire:model="reconciliationNotes"
+                            rows="2"
+                            placeholder="Notas sobre el cuadre (opcional)"
+                            class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm
+                                   focus:border-indigo-500 focus:ring-indigo-500
+                                   dark:border-white/15 dark:bg-gray-800 dark:text-white"
+                        ></textarea>
+                    @endif
                 </div>
 
                 {{-- Reconciled info --}}
                 @if($reconciliationSale->reconciled_at)
                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                        Ultimo cuadre: {{ $reconciliationSale->reconciled_at->format('Y-m-d H:i') }}
+                        Cuadrado el {{ $reconciliationSale->reconciled_at->format('Y-m-d H:i') }}
                         @if($reconciliationSale->reconciledBy)
                             por {{ $reconciliationSale->reconciledBy->name }}
                         @endif
@@ -155,18 +183,20 @@
                     class="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition
                            dark:border-white/10 dark:text-gray-200 dark:hover:bg-white/5"
                 >
-                    Cancelar
+                    {{ $isReadOnly ? 'Cerrar' : 'Cancelar' }}
                 </button>
-                <button
-                    type="button"
-                    wire:click="saveReconciliation"
-                    wire:loading.attr="disabled"
-                    class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition
-                           dark:bg-indigo-500 dark:hover:bg-indigo-400 disabled:opacity-50"
-                >
-                    <span wire:loading.remove wire:target="saveReconciliation">Guardar Cuadre</span>
-                    <span wire:loading wire:target="saveReconciliation">Guardando...</span>
-                </button>
+                @if(! $isReadOnly)
+                    <button
+                        type="button"
+                        wire:click="saveReconciliation"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition
+                               dark:bg-indigo-500 dark:hover:bg-indigo-400 disabled:opacity-50"
+                    >
+                        <span wire:loading.remove wire:target="saveReconciliation">Guardar Cuadre</span>
+                        <span wire:loading wire:target="saveReconciliation">Guardando...</span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>
