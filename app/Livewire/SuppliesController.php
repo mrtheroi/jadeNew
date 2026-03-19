@@ -7,15 +7,17 @@ use App\Models\IncomePeriod;
 use App\Models\Supply;
 use App\Services\Reports\ExpensesReportService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class SuppliesController extends Component
 {
-    use WithPagination;
+    use WithFileUploads, WithPagination;
 
     // Buscador sincronizado con la URL
     #[Url]
@@ -33,6 +35,7 @@ class SuppliesController extends Component
 
     // Modal de detalle
     public bool $showDetailModal = false;
+
     public ?Supply $detailSupply = null;
 
     // Id del registro actual (para editar)
@@ -60,18 +63,33 @@ class SuppliesController extends Component
     #[Rule('nullable|string|max:1000')]
     public ?string $notes = null;
 
+    #[Rule('nullable|image|max:5120')]
+    public $receipt = null;
+
+    public ?string $existingReceiptPath = null;
+
+    public bool $removeReceipt = false;
+
+    // Modal para ver comprobante
+    public bool $showReceiptModal = false;
+
+    public ?string $receiptUrl = null;
+
     // Para confirmar eliminación (igual que Users)
     public ?int $deleteId = null;
 
     // Filtros principales
     public string $business_unit = 'Jade';  // ✅ consistente con DB/UI
+
     public string $period_key = '';         // YYYY-MM
 
     // Modal ingreso mensual
     public bool $openIncomeModal = false;
 
     public ?string $income_id = null;
+
     public ?float $income_amount = null;
+
     public ?string $income_notes = null;
 
     public ?IncomePeriod $currentIncome = null;
@@ -86,13 +104,13 @@ class SuppliesController extends Component
     {
         $pk = $this->period_key;
 
-        if (empty($pk) || !preg_match('/^\d{4}-\d{2}$/', $pk)) {
+        if (empty($pk) || ! preg_match('/^\d{4}-\d{2}$/', $pk)) {
             $pk = now()->format('Y-m');
             $this->period_key = $pk;
         }
 
         $start = Carbon::createFromFormat('Y-m', $pk)->startOfMonth()->toDateString();
-        $end   = Carbon::createFromFormat('Y-m', $pk)->endOfMonth()->toDateString();
+        $end = Carbon::createFromFormat('Y-m', $pk)->endOfMonth()->toDateString();
 
         return [$start, $end];
     }
@@ -131,10 +149,10 @@ class SuppliesController extends Component
     public function saveIncome(): void
     {
         $this->validate([
-            'business_unit'  => 'required|in:Jade,Fuego Ambar,KIN',
-            'period_key'     => ['required', 'regex:/^\d{4}-\d{2}$/'],
-            'income_amount'  => 'required|numeric|min:0',
-            'income_notes'   => 'nullable|string|max:1000',
+            'business_unit' => 'required|in:Jade,Fuego Ambar,KIN',
+            'period_key' => ['required', 'regex:/^\d{4}-\d{2}$/'],
+            'income_amount' => 'required|numeric|min:0',
+            'income_notes' => 'nullable|string|max:1000',
         ]);
 
         IncomePeriod::updateOrCreate(
@@ -261,6 +279,24 @@ class SuppliesController extends Component
         $this->detailSupply = null;
     }
 
+    public function showReceipt(int $id): void
+    {
+        $supply = Supply::findOrFail($id);
+
+        if (! $supply->receipt_path) {
+            return;
+        }
+
+        $this->receiptUrl = $supply->receipt_url;
+        $this->showReceiptModal = true;
+    }
+
+    public function closeReceipt(): void
+    {
+        $this->showReceiptModal = false;
+        $this->receiptUrl = null;
+    }
+
     // Abrir modal en modo "crear"
     public function create(): void
     {
@@ -280,14 +316,17 @@ class SuppliesController extends Component
     {
         $supply = Supply::findOrFail($id);
 
-        $this->supplyId         = $supply->id;
-        $this->category_id      = $supply->category_id;
-        $this->is_adjustment    = ((float) $supply->amount) < 0;
-        $this->amount           = abs((float) $supply->amount);
-        $this->payment_type     = $supply->payment_type;
-        $this->payment_date     = $supply->payment_date?->format('Y-m-d');
-        $this->status           = $supply->status;
-        $this->notes            = $supply->notes;
+        $this->supplyId = $supply->id;
+        $this->category_id = $supply->category_id;
+        $this->is_adjustment = ((float) $supply->amount) < 0;
+        $this->amount = abs((float) $supply->amount);
+        $this->payment_type = $supply->payment_type;
+        $this->payment_date = $supply->payment_date?->format('Y-m-d');
+        $this->status = $supply->status;
+        $this->notes = $supply->notes;
+        $this->existingReceiptPath = $supply->receipt_path;
+        $this->receipt = null;
+        $this->removeReceipt = false;
 
         $this->open = true;
     }
@@ -305,7 +344,7 @@ class SuppliesController extends Component
         $validated = $this->validate();
 
         // payment_month automático:
-        if (!empty($validated['payment_date'])) {
+        if (! empty($validated['payment_date'])) {
             $date = Carbon::parse($validated['payment_date']);
             $validated['payment_month'] = $date->format('Y-m'); // Ej: 2025-02
         } else {
@@ -326,10 +365,29 @@ class SuppliesController extends Component
 
         $validated['amount'] = $amount;
 
-        Supply::updateOrCreate(
+        $supply = Supply::updateOrCreate(
             ['id' => $this->supplyId],
             $validated,
         );
+
+        // Handle receipt image
+        if ($this->receipt) {
+            // Delete old receipt if replacing
+            if ($supply->receipt_path) {
+                Storage::disk('s3')->delete($supply->receipt_path);
+            }
+
+            $path = $this->receipt->storeAs(
+                'receipts',
+                $supply->id.'_'.now()->timestamp.'.'.$this->receipt->getClientOriginalExtension(),
+                's3'
+            );
+
+            $supply->update(['receipt_path' => $path]);
+        } elseif ($this->removeReceipt && $supply->receipt_path) {
+            Storage::disk('s3')->delete($supply->receipt_path);
+            $supply->update(['receipt_path' => null]);
+        }
 
         $this->dispatch('notify', message: 'El registro se guardó correctamente.', type: 'success');
 
@@ -347,7 +405,13 @@ class SuppliesController extends Component
     #[On('deleteConfirmed')]
     public function destroy(int $id): void
     {
-        Supply::findOrFail($id)->delete();
+        $supply = Supply::findOrFail($id);
+
+        if ($supply->receipt_path) {
+            Storage::disk('s3')->delete($supply->receipt_path);
+        }
+
+        $supply->delete();
 
         $this->dispatch('notify', message: 'El registro se eliminó con éxito.', type: 'success');
     }
@@ -355,14 +419,17 @@ class SuppliesController extends Component
     // Resetear campos de formulario
     protected function resetForm(): void
     {
-        $this->supplyId      = null;
-        $this->category_id   = '';
-        $this->amount        = '';
-        $this->payment_type  = null;
-        $this->payment_date  = null;
-        $this->status        = 'pendiente';
-        $this->notes         = null;
+        $this->supplyId = null;
+        $this->category_id = '';
+        $this->amount = '';
+        $this->payment_type = null;
+        $this->payment_date = null;
+        $this->status = 'pendiente';
+        $this->notes = null;
         $this->is_adjustment = false;
+        $this->receipt = null;
+        $this->existingReceiptPath = null;
+        $this->removeReceipt = false;
     }
 
     public function resetFilters(): void
@@ -373,7 +440,6 @@ class SuppliesController extends Component
 
         $this->resetPage();
     }
-
 
     public function render(SuppliesQuery $query)
     {
@@ -388,22 +454,22 @@ class SuppliesController extends Component
 
         $baseQuery = $query->base($filters);
 
-        $supplies     = $baseQuery->paginate(10);
+        $supplies = $baseQuery->paginate(10);
         $totalsByUnit = $query->totalsByUnit($filters);
         $incomePeriod = $query->incomePeriod($this->business_unit, $this->period_key);
-        $categories   = $query->categories();
+        $categories = $query->categories();
 
         return view('livewire.supplies-controller', [
-            'supplies'      => $supplies,
-            'categories'    => $categories,
-            'totalsByUnit'  => $totalsByUnit,
-            'incomePeriod'  => $incomePeriod,
+            'supplies' => $supplies,
+            'categories' => $categories,
+            'totalsByUnit' => $totalsByUnit,
+            'incomePeriod' => $incomePeriod,
 
             // útil para mostrar en UI
-            'from_date'     => $from,
-            'to_date'       => $to,
-            'periodKey'     => $this->period_key,
-            'businessUnit'  => $this->business_unit,
+            'from_date' => $from,
+            'to_date' => $to,
+            'periodKey' => $this->period_key,
+            'businessUnit' => $this->business_unit,
         ]);
     }
 }

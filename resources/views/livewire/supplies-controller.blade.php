@@ -352,6 +352,23 @@
                             <td class="whitespace-nowrap py-3 pr-4 pl-3 text-right text-sm sm:pr-6">
                                 <div class="flex items-center justify-end gap-1">
 
+                                    {{-- Comprobante --}}
+                                    @if($supply->receipt_path)
+                                        <button
+                                            type="button"
+                                            wire:click="showReceipt({{ $supply->id }})"
+                                            class="group relative inline-flex items-center justify-center rounded-md p-2 text-amber-600 hover:bg-amber-50
+                                                   dark:text-amber-300 dark:hover:bg-amber-900/30 transition"
+                                            aria-label="Ver comprobante"
+                                        >
+                                            <i class="fa-thin fa-image fa-fw text-[14px]"></i>
+                                            <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
+                                                       shadow-sm transition group-hover:opacity-100 dark:bg-black">
+                                                Ver comprobante
+                                            </span>
+                                        </button>
+                                    @endif
+
                                     {{-- Ver --}}
                                     <button
                                         type="button"
@@ -560,6 +577,48 @@
                             ></textarea>
                             @error('notes') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
+
+                        {{-- Comprobante (imagen) --}}
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Comprobante</label>
+
+                            @if($existingReceiptPath && !$removeReceipt && !$receipt)
+                                <div class="mt-1 flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-gray-800/40">
+                                    <i class="fa-thin fa-image text-lg text-gray-400"></i>
+                                    <span class="flex-1 truncate text-xs text-gray-700 dark:text-gray-200">Comprobante adjunto</span>
+                                    <button
+                                        type="button"
+                                        wire:click="$set('removeReceipt', true)"
+                                        class="rounded-md p-1 text-rose-600 hover:bg-rose-50 transition dark:text-rose-400 dark:hover:bg-rose-900/30"
+                                        title="Eliminar comprobante"
+                                    >
+                                        <i class="fa-thin fa-trash fa-fw text-[13px]"></i>
+                                    </button>
+                                </div>
+                            @else
+                                <input
+                                    type="file"
+                                    wire:model="receipt"
+                                    accept="image/*"
+                                    class="mt-1 block w-full text-xs text-gray-700 dark:text-gray-200
+                                           file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-indigo-700
+                                           hover:file:bg-indigo-100
+                                           dark:file:bg-indigo-900/30 dark:file:text-indigo-300"
+                                >
+                                <div wire:loading wire:target="receipt" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="fa-thin fa-spinner-third animate-spin mr-1"></i> Subiendo imagen…
+                                </div>
+                            @endif
+
+                            @if($receipt && $receipt->isPreviewable())
+                                <div class="mt-2">
+                                    <img src="{{ $receipt->temporaryUrl() }}" alt="Vista previa" class="h-24 w-auto rounded-md border border-gray-200 object-cover dark:border-white/10">
+                                </div>
+                            @endif
+
+                            @error('receipt') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Opcional. Imagen del comprobante (máx. 5MB).</p>
+                        </div>
                     </div>
                 </div>
 
@@ -728,6 +787,48 @@
                     >
                         <span wire:loading.remove wire:target="saveIncome">Guardar</span>
                         <span wire:loading wire:target="saveIncome">Guardando…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+
+    {{-- MODAL: RECEIPT IMAGE --}}
+    @if($showReceiptModal && $receiptUrl)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" wire:click.self="closeReceipt">
+            <div class="relative w-full max-w-3xl rounded-xl bg-white shadow-lg dark:bg-gray-900">
+                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                        <i class="fa-thin fa-image mr-2"></i> Comprobante
+                    </h3>
+                    <button
+                        type="button"
+                        wire:click="closeReceipt"
+                        class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition
+                               dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                        aria-label="Cerrar"
+                    >
+                        <i class="fa-thin fa-xmark fa-fw"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-center p-4">
+                    <img
+                        src="{{ $receiptUrl }}"
+                        alt="Comprobante de gasto"
+                        class="max-h-[70vh] w-auto rounded-md object-contain"
+                    >
+                </div>
+
+                <div class="flex items-center justify-end border-t border-gray-200 px-4 py-3 dark:border-white/10">
+                    <button
+                        type="button"
+                        wire:click="closeReceipt"
+                        class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                               dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
+                    >
+                        Cerrar
                     </button>
                 </div>
             </div>
