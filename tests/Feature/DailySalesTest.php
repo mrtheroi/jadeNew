@@ -323,6 +323,38 @@ test('extraction mapper parses json correctly', function () {
         ->and($result['period_start'])->not->toBeNull();
 });
 
+test('extraction mapper parses v1 api json correctly', function () {
+    $mapper = new DailySaleExtractionMapper;
+
+    $data = [
+        'sales_by_area' => [
+            ['area_name' => 'PLANTA ALTA', 'food_sales' => 0, 'total' => 0],
+            ['area_name' => 'COMEDOR', 'food_sales' => 29566.62, 'drink_sales' => 14922.77, 'other_sales' => 5998.14, 'subtotal' => 50487.55, 'tax' => 4039, 'total' => 54526.56, 'number_of_people' => 225, 'number_of_bills' => 127, 'average_per_person' => 224.38, 'product_count' => 606],
+        ],
+        'payment_methods' => [
+            ['method' => 'EFECTIVO', 'amount' => 14795, 'tip' => 1195],
+            ['method' => 'TARJETA DEBITO', 'amount' => 15189, 'tip' => 1176.8],
+            ['method' => 'TARJETA CREDITO', 'amount' => 20151, 'tip' => 2038.1],
+            ['method' => 'CREDITO', 'amount' => 4391.56, 'tip' => 0],
+        ],
+        'report_details' => [
+            'report_period_start' => '2026-03-17 07:00:00 AM',
+            'report_period_end' => '2026-03-17 11:59:59 PM',
+        ],
+    ];
+
+    $result = $mapper->map($data);
+
+    expect($result['alimentos'])->toBe(29566.62)
+        ->and($result['bebidas'])->toBe(14922.77)
+        ->and($result['total'])->toBe(54526.56)
+        ->and($result['numero_personas'])->toBe(225)
+        ->and($result['numero_cuentas'])->toBe(127)
+        ->and($result['efectivo_monto'])->toBe(14795.0)
+        ->and($result['credito_monto'])->toBe(20151.0)
+        ->and($result['period_start'])->not->toBeNull();
+});
+
 test('unique constraint allows same date different turno', function () {
     DailySale::factory()->create([
         'business_unit' => 'Jade',
