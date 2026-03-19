@@ -47,7 +47,25 @@ Route::middleware(['auth'])->group(function () {
     Route::get('supplies/{supply}/receipt', function (Supply $supply) {
         abort_unless($supply->receipt_path, 404);
 
-        return Storage::disk('s3')->response($supply->receipt_path);
+        $content = Storage::disk('s3')->get($supply->receipt_path);
+        abort_unless($content, 404);
+
+        $mimeTypes = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'bmp' => 'image/bmp',
+        ];
+
+        $extension = strtolower(pathinfo($supply->receipt_path, PATHINFO_EXTENSION));
+        $mime = $mimeTypes[$extension] ?? 'application/octet-stream';
+
+        return response($content, 200, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
     })->name('supplies.receipt');
     Route::get('expense-types', ExpenseTypeController::class)->name('expense-types');
     Route::redirect('settings', 'settings/profile');
