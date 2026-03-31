@@ -103,7 +103,7 @@
                                 @if($selectedExtraction->image_path)
                                     <a href="{{ Storage::disk('public')->url($selectedExtraction->image_path) }}"
                                        target="_blank"
-                                       class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
+                                       class="text-xs font-semibold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300">
                                         Ver imagen
                                     </a>
                                 @else
@@ -212,7 +212,7 @@
                                 wire:model="validation_result"
                                 @if($selectedExtraction->status === 'validado') disabled @endif
                                 class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm text-gray-900 shadow-sm
-           focus:border-indigo-500 focus:ring-indigo-500
+           focus:border-emerald-500 focus:ring-emerald-500
            disabled:opacity-60 disabled:cursor-not-allowed
            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                             >
@@ -232,7 +232,7 @@
                                         rows="3"
                                         @disabled($selectedExtraction->status === 'validado')
                                         class="mt-1 block w-full rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 shadow-sm
-                   focus:border-indigo-500 focus:ring-indigo-500
+                   focus:border-emerald-500 focus:ring-emerald-500
                    disabled:opacity-60 disabled:cursor-not-allowed
                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                                         placeholder="Ej. Faltó $200, se revisará con cajero / hubo retiro / etc."

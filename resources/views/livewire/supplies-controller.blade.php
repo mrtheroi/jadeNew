@@ -23,61 +23,14 @@
                 <button
                     type="button"
                     wire:click="create"
-                    class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition
-                           dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                    class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition
+                           dark:bg-emerald-500 dark:hover:bg-emerald-400"
                 >
-                    <i class="fa-thin fa-plus mr-2"></i>
+                    <svg class="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
                     Nuevo
                 </button>
-
-                {{-- Ingreso mensual --}}
-                <button
-                    type="button"
-                    wire:click="openIncome"
-                    class="inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
-                           dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
-                    aria-label="Ingreso mensual"
-                    title="Ingreso mensual"
-                >
-                    <i class="fa-thin fa-sack-dollar mr-2"></i>
-                    Ingreso
-                </button>
-
-                {{-- Export Excel (icon) --}}
-                <button
-                    type="button"
-                    wire:click="exportExcel"
-                    wire:loading.attr="disabled"
-                    class="group relative inline-flex items-center justify-center rounded-md p-2 text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-50
-                           dark:text-emerald-300 dark:hover:bg-emerald-900/30"
-                    aria-label="Exportar Excel"
-                >
-                    <i class="fa-thin fa-file-excel fa-fw text-[15px]"></i>
-                    <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
-                               shadow-sm transition group-hover:opacity-100 dark:bg-black">
-                        Exportar Excel
-                    </span>
-                </button>
-
-                {{-- Export PDF (icon) --}}
-                <button
-                    type="button"
-                    wire:click="exportPdf"
-                    wire:loading.attr="disabled"
-                    class="group relative inline-flex items-center justify-center rounded-md p-2 text-rose-600 hover:bg-rose-50 transition disabled:opacity-50
-                           dark:text-rose-300 dark:hover:bg-rose-900/30"
-                    aria-label="Exportar PDF"
-                >
-                    <i class="fa-thin fa-file-pdf fa-fw text-[15px]"></i>
-                    <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
-                               shadow-sm transition group-hover:opacity-100 dark:bg-black">
-                        Exportar PDF
-                    </span>
-                </button>
-
-                <span wire:loading wire:target="exportExcel,exportPdf" class="text-xs text-gray-500 dark:text-gray-400">
-                    Generando…
-                </span>
             </div>
         </div>
 
@@ -97,7 +50,7 @@
                             wire:keydown.escape="$set('search','')"
                             placeholder="Categoría, proveedor, tipo, estado, método…"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-xs text-gray-900 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500
+                                   focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                         />
                     </div>
@@ -111,7 +64,7 @@
                                    dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
                             aria-label="Limpiar búsqueda"
                         >
-                            <i class="fa-thin fa-xmark fa-fw text-[15px]"></i>
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                             <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
                                        shadow-sm transition group-hover:opacity-100 dark:bg-black">
                                 Limpiar
@@ -127,12 +80,12 @@
                 <select
                     wire:model.live="business_unit"
                     class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                           focus:border-indigo-500 focus:ring-indigo-500
+                           focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 >
-                    <option value="Jade">Jade</option>
-                    <option value="Fuego Ambar">Fuego Ambar</option>
-                    <option value="KIN">KIN</option>
+                    @foreach(\App\Domain\BusinessUnit::cases() as $bu)
+                        <option value="{{ $bu->value }}">{{ $bu->value }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -143,13 +96,51 @@
                     type="month"
                     wire:model.live="period_key"
                     class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                           focus:border-indigo-500 focus:ring-indigo-500
+                           focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 />
             </div>
 
-            {{-- Quick --}}
-            <div class="lg:col-span-3 flex items-end justify-start gap-2">
+            {{-- Reportes + Mes actual + Limpiar --}}
+            <div class="lg:col-span-3 flex items-end justify-end gap-3">
+                {{-- Grupo: Reportes --}}
+                <div class="flex flex-col items-center gap-1">
+                    <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400">Reportes</span>
+                    <div class="flex items-center gap-1">
+                        <button
+                            type="button"
+                            wire:click="exportExcel"
+                            wire:loading.attr="disabled"
+                            class="group relative inline-flex items-center justify-center rounded-md p-2 text-emerald-600 hover:bg-emerald-50 transition disabled:opacity-50
+                                   dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                            aria-label="Exportar Excel"
+                        >
+                            <svg class="size-[15px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M12 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M21.375 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M12 14.625v-1.5m0 1.5c0 .621.504 1.125 1.125 1.125M12 14.625c0 .621-.504 1.125-1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5c0 .621-.504 1.125-1.125 1.125" />
+                            </svg>
+                            <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-black">Excel</span>
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="exportPdf"
+                            wire:loading.attr="disabled"
+                            class="group relative inline-flex items-center justify-center rounded-md p-2 text-rose-600 hover:bg-rose-50 transition disabled:opacity-50
+                                   dark:text-rose-300 dark:hover:bg-rose-900/30"
+                            aria-label="Exportar PDF"
+                        >
+                            <svg class="size-[15px]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                            <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-black">PDF</span>
+                        </button>
+                        <span wire:loading wire:target="exportExcel,exportPdf" class="text-[10px] text-gray-500 dark:text-gray-400">Generando…</span>
+                    </div>
+                </div>
+
+                {{-- Separador --}}
+                <div class="h-8 w-px bg-gray-200 dark:bg-white/10"></div>
+
+                {{-- Mes actual --}}
                 <button
                     type="button"
                     wire:click="setCurrentMonth"
@@ -157,7 +148,9 @@
                            dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
                     title="Ir al mes actual"
                 >
-                    <i class="fa-thin fa-calendar-days mr-2"></i>
+                    <svg class="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                    </svg>
                     Mes actual
                 </button>
             </div>
@@ -174,20 +167,19 @@
         @if(count($chips) > 0)
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 @foreach($chips as $c)
-                    <span class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    <span wire:key="chip-{{ $loop->index }}" class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                         <i class="fa-thin {{ $c['icon'] }} text-[12px]"></i>
                         {{ $c['label'] }}
                     </span>
                 @endforeach
 
-                {{-- ✅ FIX: limpiar debe llamar método Livewire --}}
                 <button
                     type="button"
                     wire:click="resetFilters"
-                    class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold text-white hover:bg-black transition
-                           dark:bg-white dark:text-gray-900"
+                    class="inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                           dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
                 >
-                    <i class="fa-thin fa-broom-wide"></i>
+                    <svg class="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3ZM16.5 16.5l5 5m0-5-5 5" /></svg>
                     Limpiar
                 </button>
             </div>
@@ -196,43 +188,14 @@
 
     {{-- CARDS --}}
     <div class="grid gap-3 md:grid-cols-3">
-        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-gray-900">
-            <div class="flex items-center justify-between">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Ingreso mensual</p>
-                <i class="fa-thin fa-sack-dollar text-gray-400"></i>
+        @foreach($totalsByUnit as $unitTotal)
+            <div wire:key="unit-total-{{ $loop->index }}" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-gray-900">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $unitTotal->business_unit }}</p>
+                <p class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+                    $ {{ number_format((float) $unitTotal->total_amount, 2) }}
+                </p>
             </div>
-            <p class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
-                $ {{ number_format((float)($incomePeriod?->income_amount ?? 0), 2) }}
-            </p>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {{ $incomePeriod ? 'Registrado' : 'Sin registro' }}
-            </p>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-gray-900 md:col-span-2">
-            <div class="flex items-center justify-between">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Total de gastos (unidad seleccionada)</p>
-                <i class="fa-thin fa-chart-simple text-gray-400"></i>
-            </div>
-
-            @php
-                $totalUnit = (float) optional($totalsByUnit->firstWhere('business_unit', $businessUnit))->total_amount;
-                $incomeAmt = (float) ($incomePeriod?->income_amount ?? 0);
-                $pct = ($incomeAmt > 0) ? ($totalUnit / $incomeAmt) : null;
-            @endphp
-
-            <p class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
-                $ {{ number_format($totalUnit, 2) }}
-            </p>
-
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                @if($pct !== null)
-                    Representa <span class="font-medium">{{ number_format($pct * 100, 1) }}%</span> del ingreso.
-                @else
-                    Agrega ingreso para calcular porcentaje.
-                @endif
-            </p>
-        </div>
+        @endforeach
     </div>
 
     {{-- TABLE WRAPPER (overlay + sticky header) --}}
@@ -297,19 +260,15 @@
                                 default => 'bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900/30 dark:text-gray-200',
                             };
 
-                            $buClass = match($bu) {
-                                'Jade' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-900/30 dark:text-emerald-300',
-                                'Fuego Ambar' => 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-300',
-                                'KIN' => 'bg-indigo-50 text-indigo-700 ring-indigo-600/20 dark:bg-indigo-900/30 dark:text-indigo-300',
-                                default => 'bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900/30 dark:text-gray-200',
-                            };
+                            $buClass = \App\Domain\BusinessUnit::tryFrom($bu)?->badgeClasses()
+                                ?? 'bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900/30 dark:text-gray-200';
 
                             $typeName = $supply->category?->expenseType?->expense_type_name ?? '—';
                             $catName  = $supply->category?->expense_name ?? '—';
                             $provName = $supply->category?->provider_name ?? null;
                         @endphp
 
-                        <tr class="hover:bg-gray-50/60 dark:hover:bg-white/5">
+                        <tr wire:key="supply-{{ $supply->id }}" class="hover:bg-gray-50/60 dark:hover:bg-white/5">
                             <td class="whitespace-nowrap py-3 pl-4 pr-3 text-sm text-gray-900 sm:pl-6 dark:text-white">
                                 {{ optional($supply->payment_date)->format('Y-m-d') ?? '—' }}
                                 @if($isAdj)
@@ -388,8 +347,8 @@
                                     <button
                                         type="button"
                                         wire:click="edit({{ $supply->id }})"
-                                        class="group relative inline-flex items-center justify-center rounded-md p-2 text-indigo-600 hover:bg-indigo-50
-                                               dark:text-indigo-300 dark:hover:bg-indigo-900/30 transition"
+                                        class="group relative inline-flex items-center justify-center rounded-md p-2 text-emerald-600 hover:bg-emerald-50
+                                               dark:text-emerald-300 dark:hover:bg-emerald-900/30 transition"
                                         aria-label="Editar"
                                     >
                                         <i class="fa-thin fa-pen-to-square fa-fw text-[14px]"></i>
@@ -463,376 +422,269 @@
 
 
     {{-- MODAL: CREATE / EDIT --}}
-    @if($open)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeModal">
-            <div class="w-full max-w-2xl rounded-xl bg-white shadow-lg dark:bg-gray-900">
-                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                        {{ $supplyId ? 'Editar registro' : 'Nuevo registro' }}
-                    </h3>
-                    <button
-                        type="button"
-                        wire:click="closeModal"
-                        class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition
-                               dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-                        aria-label="Cerrar"
+    <x-modal wire:model="open" maxWidth="2xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                {{ $form->supplyId ? 'Editar registro' : 'Nuevo registro' }}
+            </h3>
+        </div>
+
+        <div class="p-4 space-y-4">
+            <div class="grid gap-3 sm:grid-cols-2">
+                <x-form-field label="Categoría" name="category_id">
+                    <select
+                        id="category_id"
+                        wire:model.live="category_id"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                     >
-                        <i class="fa-thin fa-xmark fa-fw"></i>
-                    </button>
+                        <option value="">Selecciona…</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}">
+                                [{{ $cat->business_unit }}] {{ $cat->expenseType?->expense_type_name ?? '—' }} — {{ $cat->expense_name }} @if($cat->provider_name) · {{ $cat->provider_name }} @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </x-form-field>
+
+                <x-form-field label="Fecha de pago" name="payment_date">
+                    <input
+                        id="payment_date"
+                        type="date"
+                        wire:model.live="payment_date"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                </x-form-field>
+
+                <div>
+                    <x-form-field label="Monto" name="amount">
+                        <input
+                            id="amount"
+                            type="number"
+                            step="0.01"
+                            wire:model.live="amount"
+                            class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
+                                   focus:border-emerald-500 focus:ring-emerald-500
+                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                        >
+                    </x-form-field>
+
+                    <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
+                        <input type="checkbox" wire:model.live="is_adjustment" class="rounded border-gray-300 dark:border-white/15">
+                        Es ajuste (guardar negativo)
+                    </label>
+                    @error('is_adjustment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="p-4 space-y-4">
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Categoría</label>
-                            <select
-                                wire:model.live="category_id"
-                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500
-                                       dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                <option value="">Selecciona…</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->id }}">
-                                        [{{ $cat->business_unit }}] {{ $cat->expenseType?->expense_type_name ?? '—' }} — {{ $cat->expense_name }} @if($cat->provider_name) · {{ $cat->provider_name }} @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('category_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
+                <x-form-field label="Método de pago" name="payment_type">
+                    <select
+                        id="payment_type"
+                        wire:model.live="payment_type"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        <option value="">—</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="tarjeta_credito">Tarjeta crédito</option>
+                        <option value="tarjeta_debito">Tarjeta débito</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </x-form-field>
 
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Fecha de pago</label>
-                            <input
-                                type="date"
-                                wire:model.live="payment_date"
-                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500
-                                       dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                            @error('payment_date') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
+                <x-form-field label="Estado" name="status">
+                    <select
+                        id="status"
+                        wire:model.live="status"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="pagado">Pagado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </x-form-field>
 
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Monto</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                wire:model.live="amount"
-                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500
-                                       dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                            @error('amount') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-
-                            <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
-                                <input type="checkbox" wire:model.live="is_adjustment" class="rounded border-gray-300 dark:border-white/15">
-                                Es ajuste (guardar negativo)
-                            </label>
-                            @error('is_adjustment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Método de pago</label>
-                            <select
-                                wire:model.live="payment_type"
-                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500
-                                       dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                <option value="">—</option>
-                                <option value="efectivo">Efectivo</option>
-                                <option value="transferencia">Transferencia</option>
-                                <option value="tarjeta_credito">Tarjeta crédito</option>
-                                <option value="tarjeta_debito">Tarjeta débito</option>
-                                <option value="cheque">Cheque</option>
-                                <option value="otro">Otro</option>
-                            </select>
-                            @error('payment_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Estado</label>
-                            <select
-                                wire:model.live="status"
-                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500
-                                       dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                <option value="pendiente">Pendiente</option>
-                                <option value="pagado">Pagado</option>
-                                <option value="cancelado">Cancelado</option>
-                            </select>
-                            @error('status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Notas</label>
-                            <textarea
-                                rows="3"
-                                wire:model.live="notes"
-                                class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500
-                                       dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                            ></textarea>
-                            @error('notes') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        {{-- Comprobante (imagen) --}}
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Comprobante</label>
-
-                            @if($existingReceiptPath && !$removeReceipt && !$receipt)
-                                <div class="mt-1 flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-gray-800/40">
-                                    <i class="fa-thin fa-image text-lg text-gray-400"></i>
-                                    <span class="flex-1 truncate text-xs text-gray-700 dark:text-gray-200">Comprobante adjunto</span>
-                                    <button
-                                        type="button"
-                                        wire:click="$set('removeReceipt', true)"
-                                        class="rounded-md p-1 text-rose-600 hover:bg-rose-50 transition dark:text-rose-400 dark:hover:bg-rose-900/30"
-                                        title="Eliminar comprobante"
-                                    >
-                                        <i class="fa-thin fa-trash fa-fw text-[13px]"></i>
-                                    </button>
-                                </div>
-                            @else
-                                <input
-                                    type="file"
-                                    wire:model="receipt"
-                                    accept="image/*"
-                                    class="mt-1 block w-full text-xs text-gray-700 dark:text-gray-200
-                                           file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-indigo-700
-                                           hover:file:bg-indigo-100
-                                           dark:file:bg-indigo-900/30 dark:file:text-indigo-300"
-                                >
-                                <div wire:loading wire:target="receipt" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    <i class="fa-thin fa-spinner-third animate-spin mr-1"></i> Subiendo imagen…
-                                </div>
-                            @endif
-
-                            @if($receipt && $receipt->isPreviewable())
-                                <div class="mt-2">
-                                    <img src="{{ $receipt->temporaryUrl() }}" alt="Vista previa" class="h-24 w-auto rounded-md border border-gray-200 object-cover dark:border-white/10">
-                                </div>
-                            @endif
-
-                            @error('receipt') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Opcional. Imagen del comprobante (máx. 5MB).</p>
-                        </div>
-                    </div>
+                <div class="sm:col-span-2">
+                    <x-form-field label="Notas" name="notes">
+                        <textarea
+                            id="notes"
+                            rows="3"
+                            wire:model.live="notes"
+                            class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
+                                   focus:border-emerald-500 focus:ring-emerald-500
+                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                        ></textarea>
+                    </x-form-field>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3 dark:border-white/10">
-                    <button
-                        type="button"
-                        wire:click="closeModal"
-                        class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
-                               dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
-                    >
-                        Cancelar
-                    </button>
+                {{-- Comprobante (imagen) --}}
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Comprobante</label>
 
-                    <button
-                        type="button"
-                        wire:click="save"
-                        wire:loading.attr="disabled"
-                        class="rounded-md bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition disabled:opacity-50
-                               dark:bg-indigo-500 dark:hover:bg-indigo-400"
-                    >
-                        <span wire:loading.remove wire:target="save">Guardar</span>
-                        <span wire:loading wire:target="save">Guardando…</span>
-                    </button>
+                    @if($form->existingReceiptPath && !$form->removeReceipt && !$form->receipt)
+                        <div class="mt-1 flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-gray-800/40">
+                            <i class="fa-thin fa-image text-lg text-gray-400"></i>
+                            <span class="flex-1 truncate text-xs text-gray-700 dark:text-gray-200">Comprobante adjunto</span>
+                            <button
+                                type="button"
+                                wire:click="$set('form.removeReceipt', true)"
+                                class="rounded-md p-1 text-rose-600 hover:bg-rose-50 transition dark:text-rose-400 dark:hover:bg-rose-900/30"
+                                title="Eliminar comprobante"
+                            >
+                                <i class="fa-thin fa-trash fa-fw text-[13px]"></i>
+                            </button>
+                        </div>
+                    @else
+                        <input
+                            type="file"
+                            wire:model="form.receipt"
+                            accept="image/*"
+                            class="mt-1 block w-full text-xs text-gray-700 dark:text-gray-200
+                                   file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-emerald-700
+                                   hover:file:bg-emerald-100
+                                   dark:file:bg-emerald-900/30 dark:file:text-emerald-300"
+                        >
+                        <div wire:loading wire:target="form.receipt" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <i class="fa-thin fa-spinner-third animate-spin mr-1"></i> Subiendo imagen…
+                        </div>
+                    @endif
+
+                    @if($form->receipt && $form->receipt->isPreviewable())
+                        <div class="mt-2">
+                            <img src="{{ $form->receipt->temporaryUrl() }}" alt="Vista previa" class="h-24 w-auto rounded-md border border-gray-200 object-cover dark:border-white/10">
+                        </div>
+                    @endif
+
+                    @error('form.receipt') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Opcional. Imagen del comprobante (máx. 5MB).</p>
                 </div>
             </div>
         </div>
-    @endif
+
+        <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3 dark:border-white/10">
+            <button
+                type="button"
+                wire:click="closeModal"
+                class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                       dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                wire:click="save"
+                wire:loading.attr="disabled"
+                class="rounded-md bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition disabled:opacity-50
+                       dark:bg-emerald-500 dark:hover:bg-emerald-400"
+            >
+                <span wire:loading.remove wire:target="save">Guardar</span>
+                <span wire:loading wire:target="save">Guardando…</span>
+            </button>
+        </div>
+    </x-modal>
 
 
     {{-- MODAL: DETAIL --}}
-    @if($showDetailModal && $detailSupply)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeDetail">
-            <div class="w-full max-w-xl rounded-xl bg-white shadow-lg dark:bg-gray-900">
-                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Detalle</h3>
-                    <button
-                        type="button"
-                        wire:click="closeDetail"
-                        class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition
-                               dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-                        aria-label="Cerrar"
-                    >
-                        <i class="fa-thin fa-xmark fa-fw"></i>
-                    </button>
-                </div>
+    @if($detailSupply)
+        <x-modal wire:model="showDetailModal" maxWidth="xl">
+            <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Detalle</h3>
+            </div>
 
-                <div class="p-4 space-y-3 text-sm text-gray-800 dark:text-gray-100">
-                    <div class="grid grid-cols-2 gap-3 text-xs">
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
-                            <div class="text-gray-500 dark:text-gray-400">Unidad</div>
-                            <div class="font-semibold">{{ $detailSupply->category?->business_unit ?? '—' }}</div>
-                        </div>
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
-                            <div class="text-gray-500 dark:text-gray-400">Fecha</div>
-                            <div class="font-semibold">{{ optional($detailSupply->payment_date)->format('Y-m-d') ?? '—' }}</div>
-                        </div>
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40 col-span-2">
-                            <div class="text-gray-500 dark:text-gray-400">Categoría</div>
-                            <div class="font-semibold">
-                                {{ $detailSupply->category?->expenseType?->expense_type_name ?? '—' }} — {{ $detailSupply->category?->expense_name ?? '—' }}
-                            </div>
-                            <div class="text-gray-500 dark:text-gray-400">
-                                {{ $detailSupply->category?->provider_name ?? '' }}
-                            </div>
-                        </div>
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
-                            <div class="text-gray-500 dark:text-gray-400">Método</div>
-                            <div class="font-semibold">{{ $detailSupply->payment_type ?? '—' }}</div>
-                        </div>
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
-                            <div class="text-gray-500 dark:text-gray-400">Estado</div>
-                            <div class="font-semibold">{{ ucfirst($detailSupply->status ?? '—') }}</div>
-                        </div>
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40 col-span-2">
-                            <div class="text-gray-500 dark:text-gray-400">Monto</div>
-                            <div class="text-base font-bold {{ (float)$detailSupply->amount < 0 ? 'text-rose-600 dark:text-rose-300' : '' }}">
-                                $ {{ number_format((float)$detailSupply->amount, 2) }}
-                            </div>
-                        </div>
-                        @if($detailSupply->notes)
-                            <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40 col-span-2">
-                                <div class="text-gray-500 dark:text-gray-400">Notas</div>
-                                <div class="text-sm">{{ $detailSupply->notes }}</div>
-                            </div>
-                        @endif
+            <div class="p-4 space-y-3 text-sm text-gray-800 dark:text-gray-100">
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
+                        <div class="text-gray-500 dark:text-gray-400">Unidad</div>
+                        <div class="font-semibold">{{ $detailSupply->category?->business_unit ?? '—' }}</div>
                     </div>
-                </div>
-
-                <div class="flex items-center justify-end border-t border-gray-200 px-4 py-3 dark:border-white/10">
-                    <button
-                        type="button"
-                        wire:click="closeDetail"
-                        class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
-                               dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
-                    >
-                        Cerrar
-                    </button>
+                    <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
+                        <div class="text-gray-500 dark:text-gray-400">Fecha</div>
+                        <div class="font-semibold">{{ optional($detailSupply->payment_date)->format('Y-m-d') ?? '—' }}</div>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40 col-span-2">
+                        <div class="text-gray-500 dark:text-gray-400">Categoría</div>
+                        <div class="font-semibold">
+                            {{ $detailSupply->category?->expenseType?->expense_type_name ?? '—' }} — {{ $detailSupply->category?->expense_name ?? '—' }}
+                        </div>
+                        <div class="text-gray-500 dark:text-gray-400">
+                            {{ $detailSupply->category?->provider_name ?? '' }}
+                        </div>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
+                        <div class="text-gray-500 dark:text-gray-400">Método</div>
+                        <div class="font-semibold">{{ $detailSupply->payment_type ?? '—' }}</div>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40">
+                        <div class="text-gray-500 dark:text-gray-400">Estado</div>
+                        <div class="font-semibold">{{ ucfirst($detailSupply->status ?? '—') }}</div>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40 col-span-2">
+                        <div class="text-gray-500 dark:text-gray-400">Monto</div>
+                        <div class="text-base font-bold {{ (float)$detailSupply->amount < 0 ? 'text-rose-600 dark:text-rose-300' : '' }}">
+                            $ {{ number_format((float)$detailSupply->amount, 2) }}
+                        </div>
+                    </div>
+                    @if($detailSupply->notes)
+                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/40 col-span-2">
+                            <div class="text-gray-500 dark:text-gray-400">Notas</div>
+                            <div class="text-sm">{{ $detailSupply->notes }}</div>
+                        </div>
+                    @endif
                 </div>
             </div>
-        </div>
+
+            <div class="flex items-center justify-end border-t border-gray-200 px-4 py-3 dark:border-white/10">
+                <button
+                    type="button"
+                    wire:click="closeDetail"
+                    class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                           dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
+                >
+                    Cerrar
+                </button>
+            </div>
+        </x-modal>
     @endif
 
 
-    {{-- MODAL: INCOME --}}
-    @if($openIncomeModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeIncome">
-            <div class="w-full max-w-xl rounded-xl bg-white shadow-lg dark:bg-gray-900">
-                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                        Ingreso mensual · {{ $businessUnit }} · {{ $periodKey }}
-                    </h3>
-                    <button
-                        type="button"
-                        wire:click="closeIncome"
-                        class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition
-                               dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-                        aria-label="Cerrar"
-                    >
-                        <i class="fa-thin fa-xmark fa-fw"></i>
-                    </button>
-                </div>
-
-                <div class="p-4 space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Monto</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            wire:model.live="income_amount"
-                            class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500
-                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                        @error('income_amount') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Notas</label>
-                        <textarea
-                            rows="3"
-                            wire:model.live="income_notes"
-                            class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500
-                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                        ></textarea>
-                        @error('income_notes') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3 dark:border-white/10">
-                    <button
-                        type="button"
-                        wire:click="closeIncome"
-                        class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
-                               dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
-                    >
-                        Cancelar
-                    </button>
-
-                    <button
-                        type="button"
-                        wire:click="saveIncome"
-                        wire:loading.attr="disabled"
-                        class="rounded-md bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition disabled:opacity-50
-                               dark:bg-indigo-500 dark:hover:bg-indigo-400"
-                    >
-                        <span wire:loading.remove wire:target="saveIncome">Guardar</span>
-                        <span wire:loading wire:target="saveIncome">Guardando…</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
 
 
     {{-- MODAL: RECEIPT IMAGE --}}
-    @if($showReceiptModal && $receiptUrl)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" wire:click.self="closeReceipt">
-            <div class="relative w-full max-w-3xl rounded-xl bg-white shadow-lg dark:bg-gray-900">
-                <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                        <i class="fa-thin fa-image mr-2"></i> Comprobante
-                    </h3>
-                    <button
-                        type="button"
-                        wire:click="closeReceipt"
-                        class="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition
-                               dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
-                        aria-label="Cerrar"
-                    >
-                        <i class="fa-thin fa-xmark fa-fw"></i>
-                    </button>
-                </div>
-
-                <div class="flex items-center justify-center p-4">
-                    <img
-                        src="{{ $receiptUrl }}"
-                        alt="Comprobante de gasto"
-                        class="max-h-[70vh] w-auto rounded-md object-contain"
-                    >
-                </div>
-
-                <div class="flex items-center justify-end border-t border-gray-200 px-4 py-3 dark:border-white/10">
-                    <button
-                        type="button"
-                        wire:click="closeReceipt"
-                        class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
-                               dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
-                    >
-                        Cerrar
-                    </button>
-                </div>
+    @if($receiptUrl)
+        <x-modal wire:model="showReceiptModal" maxWidth="2xl">
+            <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="fa-thin fa-image mr-2"></i> Comprobante
+                </h3>
             </div>
-        </div>
+
+            <div class="flex items-center justify-center p-4">
+                <img
+                    src="{{ $receiptUrl }}"
+                    alt="Comprobante de gasto"
+                    class="max-h-[70vh] w-auto rounded-md object-contain"
+                >
+            </div>
+
+            <div class="flex items-center justify-end border-t border-gray-200 px-4 py-3 dark:border-white/10">
+                <button
+                    type="button"
+                    wire:click="closeReceipt"
+                    class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                           dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
+                >
+                    Cerrar
+                </button>
+            </div>
+        </x-modal>
     @endif
 
 </div>

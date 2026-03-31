@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Database\Factories\DailySaleFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DailySale extends Model
 {
-    /** @use HasFactory<\Database\Factories\DailySaleFactory> */
+    /** @use HasFactory<DailySaleFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -83,6 +85,31 @@ class DailySale extends Model
     public function reconciledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reconciled_by');
+    }
+
+    public function scopeCompleted(Builder $query): Builder
+    {
+        return $query->where('status', 'completed');
+    }
+
+    public function scopeFailed(Builder $query): Builder
+    {
+        return $query->where('status', 'failed');
+    }
+
+    public function scopeProcessing(Builder $query): Builder
+    {
+        return $query->where('status', 'processing');
+    }
+
+    public function scopeInPeriod(Builder $query, string $from, string $to): Builder
+    {
+        return $query->whereBetween('operation_date', [$from, $to]);
+    }
+
+    public function scopeByUnit(Builder $query, ?string $unit): Builder
+    {
+        return $unit ? $query->where('business_unit', $unit) : $query;
     }
 
     public function isReconciled(): bool

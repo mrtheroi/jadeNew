@@ -2,64 +2,32 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\HasModalCrud;
+use App\Livewire\Concerns\HasSearchFilter;
+use App\Livewire\Forms\UserForm;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
+use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Component
 {
-    use WithPagination, WithoutUrlPagination;
+    use HasModalCrud, HasSearchFilter, WithoutUrlPagination, WithPagination;
 
     #[Url]
     public string $search = '';
 
     public ?string $filter_role = null;
+
     public ?string $filter_status = null;
 
-    public bool $open = false;
-
-    // Form
-    public ?int $selected_id = null;
-
-    public string $name = '';
-    public string $email = '';
-    public string $password = '';
-    public ?string $role = null;
-
-    // ====== Rules ======
-    public function rules(): array
-    {
-        return [
-            'name' => ['required', 'string', 'min:3', 'max:60'],
-
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($this->selected_id),
-            ],
-
-            'role' => ['required', Rule::exists('roles', 'name')],
-
-            // password requerido solo al crear
-            'password' => $this->selected_id
-                ? ['nullable', 'string', 'min:8']
-                : ['required', 'string', 'min:8'],
-        ];
-    }
+    public UserForm $form;
 
     // ====== UI helpers ======
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
     public function updatedFilterRole(): void
     {
         $this->resetPage();
@@ -78,70 +46,39 @@ class UserController extends Component
         $this->resetPage();
     }
 
-    public function create(): void
-    {
-        $this->resetForm();
-        $this->open = true;
-    }
-
-    public function closeModal(): void
-    {
-        $this->open = false;
-        $this->resetValidation();
-    }
-
-    private function resetForm(): void
-    {
-        $this->selected_id = null;
-        $this->name = '';
-        $this->email = '';
-        $this->password = '';
-        $this->role = null;
-    }
-
     // ====== CRUD ======
     public function edit(int $id): void
     {
         $user = User::withTrashed()->with('roles')->findOrFail($id);
 
-        $this->selected_id = $user->id;
-        $this->name = (string) $user->name;
-        $this->email = (string) $user->email;
-        $this->role = $user->roles->pluck('name')->first();
-        $this->password = '';
-
+        $this->form->fillFromModel($user);
         $this->open = true;
     }
 
-    /**
-     * save() crea o actualiza según selected_id
-     * (alineado con tu vista que normalmente llama save)
-     */
     public function save(): void
     {
-        $data = $this->validate();
+        $data = $this->form->validate();
 
-        $user = $this->selected_id
-            ? User::withTrashed()->findOrFail($this->selected_id)
-            : new User();
+        $user = $this->form->isEditing()
+            ? User::withTrashed()->findOrFail($this->form->selected_id)
+            : new User;
 
         $user->name = $data['name'];
         $user->email = $data['email'];
 
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
-        } elseif (!$this->selected_id) {
-            // seguridad extra por si algo raro pasa
-            $user->password = Hash::make($this->password);
+        } elseif (! $this->form->isEditing()) {
+            $user->password = Hash::make($this->form->password);
         }
 
         $user->save();
         $user->syncRoles([$data['role']]);
 
+        $message = $this->form->isEditing() ? 'Usuario actualizado con éxito.' : 'Usuario creado con éxito.';
         $this->closeModal();
-        $this->resetForm();
-
-        $this->dispatch('notify', message: $this->selected_id ? 'Usuario actualizado con éxito.' : 'Usuario creado con éxito.', type: 'success');
+        $this->form->reset();
+        $this->dispatch('notify', message: $message, type: 'success');
     }
 
     public function deleteConfirmation(int $id): void
@@ -179,11 +116,11 @@ class UserController extends Component
                         ->orWhere('email', 'like', "%{$s}%");
                 });
             })
-            ->when(!empty($this->filter_role), function ($q) {
+            ->when(! empty($this->filter_role), function ($q) {
                 $role = $this->filter_role;
                 $q->whereHas('roles', fn ($rq) => $rq->where('name', $role));
             })
-            ->when(!empty($this->filter_status), function ($q) {
+            ->when(! empty($this->filter_status), function ($q) {
                 if ($this->filter_status === 'active') {
                     $q->whereNull('deleted_at');
                 }

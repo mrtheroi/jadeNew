@@ -16,21 +16,21 @@ class DailySaleExtractionMapper
      */
     public function map(array $data): array
     {
-        $comedor = $this->findArea($data['sales_by_area'] ?? [], 'COMEDOR');
+        $areas = $this->sumAreas($data['sales_by_area'] ?? []);
         $payments = $this->indexPayments($data['payment_methods'] ?? $data['payment_summary'] ?? []);
 
         return [
-            // Sales by area (COMEDOR)
-            'alimentos' => (float) ($comedor['food_sales'] ?? 0),
-            'bebidas' => (float) ($comedor['drink_sales'] ?? $comedor['beverage_sales'] ?? 0),
-            'otros' => (float) ($comedor['other_sales'] ?? 0),
-            'subtotal' => (float) ($comedor['subtotal'] ?? 0),
-            'iva' => (float) ($comedor['tax'] ?? 0),
-            'total' => (float) ($comedor['total'] ?? 0),
-            'numero_personas' => (int) ($comedor['number_of_people'] ?? 0),
-            'numero_cuentas' => (int) ($comedor['number_of_bills'] ?? $comedor['number_of_accounts'] ?? 0),
-            'promedio_por_persona' => (float) ($comedor['average_per_person'] ?? 0),
-            'cantidad_productos' => (int) ($comedor['product_count'] ?? 0),
+            // Sales (sum of all areas: COMEDOR + PLANTA ALTA, etc.)
+            'alimentos' => $areas['food_sales'],
+            'bebidas' => $areas['beverage_sales'],
+            'otros' => $areas['other_sales'],
+            'subtotal' => $areas['subtotal'],
+            'iva' => $areas['tax'],
+            'total' => $areas['total'],
+            'numero_personas' => $areas['number_of_people'],
+            'numero_cuentas' => $areas['number_of_accounts'],
+            'promedio_por_persona' => $areas['average_per_person'],
+            'cantidad_productos' => $areas['product_count'],
 
             // Payment summary
             'efectivo_monto' => (float) ($payments['EFECTIVO']['amount'] ?? 0),
@@ -53,20 +53,43 @@ class DailySaleExtractionMapper
     }
 
     /**
-     * Find an area by name in the sales_by_area array.
+     * Sum numeric fields across all areas (COMEDOR, PLANTA ALTA, etc.).
      *
      * @param  array<int, array<string, mixed>>  $areas
-     * @return array<string, mixed>
+     * @return array<string, float|int>
      */
-    private function findArea(array $areas, string $areaName): array
+    private function sumAreas(array $areas): array
     {
+        $totals = [
+            'food_sales' => 0.0,
+            'beverage_sales' => 0.0,
+            'other_sales' => 0.0,
+            'subtotal' => 0.0,
+            'tax' => 0.0,
+            'total' => 0.0,
+            'number_of_people' => 0,
+            'number_of_accounts' => 0,
+            'average_per_person' => 0.0,
+            'product_count' => 0,
+        ];
+
         foreach ($areas as $area) {
-            if (($area['area_name'] ?? '') === $areaName) {
-                return $area;
-            }
+            $totals['food_sales'] += (float) ($area['food_sales'] ?? 0);
+            $totals['beverage_sales'] += (float) ($area['drink_sales'] ?? $area['beverage_sales'] ?? 0);
+            $totals['other_sales'] += (float) ($area['other_sales'] ?? 0);
+            $totals['subtotal'] += (float) ($area['subtotal'] ?? 0);
+            $totals['tax'] += (float) ($area['tax'] ?? 0);
+            $totals['total'] += (float) ($area['total'] ?? 0);
+            $totals['number_of_people'] += (int) ($area['number_of_people'] ?? 0);
+            $totals['number_of_accounts'] += (int) ($area['number_of_bills'] ?? $area['number_of_accounts'] ?? 0);
+            $totals['product_count'] += (int) ($area['product_count'] ?? 0);
         }
 
-        return [];
+        if ($totals['number_of_people'] > 0) {
+            $totals['average_per_person'] = round($totals['total'] / $totals['number_of_people'], 2);
+        }
+
+        return $totals;
     }
 
     /**

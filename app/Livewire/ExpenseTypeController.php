@@ -2,81 +2,45 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\HasModalCrud;
+use App\Livewire\Concerns\HasSearchFilter;
+use App\Livewire\Forms\ExpenseTypeForm;
 use App\Models\ExpenseType;
 use Livewire\Attributes\On;
-use Illuminate\Validation\Rule as VRule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class ExpenseTypeController extends Component
 {
-    use WithPagination;
+    use HasModalCrud, HasSearchFilter, WithPagination;
 
     #[Url]
     public string $search = '';
 
-    public bool $open = false;
-
-    public ?int $expenseTypeId = null;
-
-    public string $expense_type_name = '';
-    public bool $is_active = true;
-    public ?int $deleteId = null;
-
-    public function rules(): array
-    {
-        return [
-            'expense_type_name' => [
-                'required', 'string', 'max:150',
-                VRule::unique('expense_types', 'expense_type_name')->ignore($this->expenseTypeId),
-            ],
-            'is_active' => ['required', 'boolean'],
-        ];
-    }
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function create(): void
-    {
-        $this->resetForm();
-        $this->open = true;
-    }
+    public ExpenseTypeForm $form;
 
     public function edit(int $id): void
     {
-        $category = ExpenseType::findOrFail($id);
-
-        $this->expenseTypeId    = $category->id;
-        $this->expense_type_name  = $category->expense_type_name;
-        $this->is_active     = $category->is_active ? 1 : 0;
-
+        $this->form->fillFromModel(ExpenseType::findOrFail($id));
         $this->open = true;
-    }
-
-    public function closeModal(): void
-    {
-        $this->open = false;
-        $this->resetValidation();
     }
 
     // Guardar (create / update)
     public function save(): void
     {
-        $data = $this->validate();
+        $data = $this->form->validate();
 
-        if ($this->expenseTypeId) {
-            ExpenseType::whereKey($this->expenseTypeId)->update($data);
+        if ($this->form->expenseTypeId) {
+            ExpenseType::whereKey($this->form->expenseTypeId)->update($data);
         } else {
             ExpenseType::create($data);
         }
 
-        $this->dispatch('notify', message: 'Categoría guardada correctamente.',type: 'success');
+        $this->dispatch('notify', message: 'Tipo de gasto guardado correctamente.', type: 'success');
 
         $this->closeModal();
-        $this->resetForm();
+        $this->form->reset();
     }
 
     // Preparar eliminación
@@ -92,13 +56,6 @@ class ExpenseTypeController extends Component
         ExpenseType::findOrFail($id)->delete();
 
         $this->dispatch('notify', message: 'Tipo de gasto eliminado con éxito.', type: 'success');
-    }
-
-    protected function resetForm(): void
-    {
-        $this->expenseTypeId = null;
-        $this->expense_type_name = '';
-        $this->is_active = true;
     }
 
     public function render()

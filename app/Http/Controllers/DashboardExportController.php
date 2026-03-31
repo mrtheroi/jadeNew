@@ -2,214 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DailySale;
-use App\Models\ExpenseType;
-use App\Models\Supply;
-use Carbon\Carbon;
+use App\Domain\BusinessUnit;
+use App\Services\DashboardService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Enum;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardExportController extends Controller
 {
-    private function periodRange(Request $request): array
+    public function __construct(private DashboardService $dashboard) {}
+
+    private function validateExportInput(Request $request): array
     {
-        $pk = $request->input('period_key', now()->format('Y-m'));
-
-        if (! preg_match('/^\d{4}-\d{2}$/', $pk)) {
-            $pk = now()->format('Y-m');
-        }
-
-        $start = Carbon::createFromFormat('Y-m', $pk)->startOfMonth()->toDateString();
-        $end = Carbon::createFromFormat('Y-m', $pk)->endOfMonth()->toDateString();
-
-        return [$start, $end, $pk];
-    }
-
-    private function salesQuery(Request $request): \Illuminate\Database\Eloquent\Builder
-    {
-        [$from, $to] = $this->periodRange($request);
-        $businessUnit = $request->input('business_unit');
-
-        $q = DailySale::query()
-            ->where('status', 'completed')
-            ->whereBetween('operation_date', [$from, $to]);
-
-        if ($businessUnit) {
-            $q->where('business_unit', $businessUnit);
-        }
-
-        return $q;
-    }
-
-    private function buildSalesData(Request $request): array
-    {
-        [$from, $to, $periodKey] = $this->periodRange($request);
-        $businessUnit = $request->input('business_unit');
-        $salesQuery = $this->salesQuery($request);
-
-        $salesTotals = (clone $salesQuery)->selectRaw('
-            COALESCE(SUM(total), 0) as total_sales,
-            COALESCE(SUM(subtotal), 0) as total_subtotal,
-            COALESCE(SUM(iva), 0) as total_iva,
-            COALESCE(SUM(alimentos), 0) as total_alimentos,
-            COALESCE(SUM(bebidas), 0) as total_bebidas,
-            COALESCE(SUM(otros), 0) as total_otros,
-            COALESCE(SUM(efectivo_monto), 0) as total_efectivo_monto,
-            COALESCE(SUM(efectivo_propina), 0) as total_efectivo_propina,
-            COALESCE(SUM(debito_monto), 0) as total_debito_monto,
-            COALESCE(SUM(debito_propina), 0) as total_debito_propina,
-            COALESCE(SUM(credito_monto), 0) as total_credito_monto,
-            COALESCE(SUM(credito_propina), 0) as total_credito_propina,
-            COALESCE(SUM(credito_cliente_monto), 0) as total_credito_cliente_monto,
-            COALESCE(SUM(credito_cliente_propina), 0) as total_credito_cliente_propina,
-            COALESCE(SUM(numero_personas), 0) as total_personas,
-            COALESCE(SUM(numero_cuentas), 0) as total_cuentas
-        ')->first();
-
-        $totalSales = (float) $salesTotals->total_sales;
-        $totalPersonas = (int) $salesTotals->total_personas;
-
-        // Expenses
-        $expensesQuery = Supply::query()
-            ->join('categories', 'supplies.category_id', '=', 'categories.id')
-            ->whereBetween('supplies.payment_date', [$from, $to])
-            ->where('supplies.status', '!=', 'cancelado');
-
-        if ($businessUnit) {
-            $expensesQuery->where('categories.business_unit', $businessUnit);
-        }
-
-        $totalExpenses = (float) (clone $expensesQuery)
-            ->selectRaw('COALESCE(SUM(ABS(supplies.amount)), 0) as total')
-            ->value('total');
-
-        // Turno data
-        $turnoData = (clone $salesQuery)
-            ->selectRaw('turno, COALESCE(SUM(total), 0) as total_ventas, COALESCE(SUM(numero_personas), 0) as total_personas')
-            ->groupBy('turno')
-            ->get()
-            ->keyBy('turno');
-
-        $turno1Ventas = (float) ($turnoData[1]->total_ventas ?? 0);
-        $turno1Personas = (int) ($turnoData[1]->total_personas ?? 0);
-        $turno2Ventas = (float) ($turnoData[2]->total_ventas ?? 0);
-        $turno2Personas = (int) ($turnoData[2]->total_personas ?? 0);
-
-        $profit = $totalSales - $totalExpenses;
-
-        return [
-            'periodKey' => $periodKey,
-            'from' => $from,
-            'to' => $to,
-            'businessUnit' => $businessUnit ?: 'Todas',
-            'totalSales' => $totalSales,
-            'totalSubtotal' => (float) $salesTotals->total_subtotal,
-            'totalIva' => (float) $salesTotals->total_iva,
-            'totalAlimentos' => (float) $salesTotals->total_alimentos,
-            'totalBebidas' => (float) $salesTotals->total_bebidas,
-            'totalOtros' => (float) $salesTotals->total_otros,
-            'efectivoMonto' => (float) $salesTotals->total_efectivo_monto,
-            'efectivoPropina' => (float) $salesTotals->total_efectivo_propina,
-            'debitoMonto' => (float) $salesTotals->total_debito_monto,
-            'debitoPropina' => (float) $salesTotals->total_debito_propina,
-            'creditoMonto' => (float) $salesTotals->total_credito_monto,
-            'creditoPropina' => (float) $salesTotals->total_credito_propina,
-            'creditoClienteMonto' => (float) $salesTotals->total_credito_cliente_monto,
-            'creditoClientePropina' => (float) $salesTotals->total_credito_cliente_propina,
-            'totalPropinas' => (float) $salesTotals->total_efectivo_propina + (float) $salesTotals->total_debito_propina + (float) $salesTotals->total_credito_propina + (float) $salesTotals->total_credito_cliente_propina,
-            'totalPersonas' => $totalPersonas,
-            'totalCuentas' => (int) $salesTotals->total_cuentas,
-            'ticketPromedio' => $totalPersonas > 0 ? round($totalSales / $totalPersonas, 2) : 0,
-            'totalExpenses' => $totalExpenses,
-            'profit' => $profit,
-            'profitPercent' => $totalSales > 0 ? round(($profit / $totalSales) * 100, 2) : 0,
-            'turno1Ventas' => $turno1Ventas,
-            'turno1Personas' => $turno1Personas,
-            'turno1Ticket' => $turno1Personas > 0 ? round($turno1Ventas / $turno1Personas, 2) : 0,
-            'turno2Ventas' => $turno2Ventas,
-            'turno2Personas' => $turno2Personas,
-            'turno2Ticket' => $turno2Personas > 0 ? round($turno2Ventas / $turno2Personas, 2) : 0,
-        ];
-    }
-
-    private function buildEstadoResultadosData(Request $request): array
-    {
-        [$from, $to, $periodKey] = $this->periodRange($request);
-        $businessUnit = $request->input('business_unit');
-
-        $salesQuery = $this->salesQuery($request);
-
-        $salesTotals = (clone $salesQuery)->selectRaw('
-            COALESCE(SUM(total), 0) as total_sales,
-            COALESCE(SUM(subtotal), 0) as total_subtotal,
-            COALESCE(SUM(iva), 0) as total_iva,
-            COALESCE(SUM(alimentos), 0) as total_alimentos,
-            COALESCE(SUM(bebidas), 0) as total_bebidas,
-            COALESCE(SUM(otros), 0) as total_otros
-        ')->first();
-
-        $totalSales = (float) $salesTotals->total_sales;
-
-        $expenseTypes = ExpenseType::query()
-            ->where('is_active', true)
-            ->orderBy('expense_type_name')
-            ->get();
-
-        $groups = [];
-        $grandTotalExpenses = 0;
-
-        foreach ($expenseTypes as $et) {
-            $categorySums = Supply::query()
-                ->join('categories', 'supplies.category_id', '=', 'categories.id')
-                ->where('categories.expense_type_id', $et->id)
-                ->whereBetween('supplies.payment_date', [$from, $to])
-                ->where('supplies.status', '!=', 'cancelado')
-                ->when($businessUnit, fn ($q) => $q->where('categories.business_unit', $businessUnit))
-                ->selectRaw('categories.expense_name, COALESCE(SUM(ABS(supplies.amount)), 0) as total_amount')
-                ->groupBy('categories.expense_name')
-                ->orderBy('categories.expense_name')
-                ->get();
-
-            $groupTotal = $categorySums->sum('total_amount');
-            $grandTotalExpenses += $groupTotal;
-
-            $categories = $categorySums->map(fn ($row) => [
-                'name' => $row->expense_name,
-                'amount' => (float) $row->total_amount,
-                'percent' => $totalSales > 0 ? round(((float) $row->total_amount / $totalSales) * 100, 2) : 0,
-            ])->toArray();
-
-            $groups[] = [
-                'expense_type' => $et->expense_type_name,
-                'categories' => $categories,
-                'total' => $groupTotal,
-                'percent' => $totalSales > 0 ? round(($groupTotal / $totalSales) * 100, 2) : 0,
-            ];
-        }
-
-        $profit = $totalSales - $grandTotalExpenses;
-
-        return [
-            'periodKey' => $periodKey,
-            'from' => $from,
-            'to' => $to,
-            'businessUnit' => $businessUnit ?: 'Todas',
-            'totalSales' => $totalSales,
-            'totalSubtotal' => (float) $salesTotals->total_subtotal,
-            'totalIva' => (float) $salesTotals->total_iva,
-            'totalAlimentos' => (float) $salesTotals->total_alimentos,
-            'totalBebidas' => (float) $salesTotals->total_bebidas,
-            'totalOtros' => (float) $salesTotals->total_otros,
-            'groups' => $groups,
-            'grandTotalExpenses' => $grandTotalExpenses,
-            'profit' => $profit,
-            'profitPercent' => $totalSales > 0 ? round(($profit / $totalSales) * 100, 2) : 0,
-        ];
+        return $request->validate([
+            'business_unit' => ['nullable', 'string', new Enum(BusinessUnit::class)],
+            'period_key' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
+        ]);
     }
 
     public function excel(Request $request): StreamedResponse
     {
-        $data = $this->buildSalesData($request);
+        $validated = $this->validateExportInput($request);
+        $data = $this->dashboard->getFullDashboardData(
+            $validated['business_unit'] ?? null,
+            $validated['period_key'] ?? null,
+        );
 
         $fileName = 'reporte_ventas_'.$data['periodKey'].'_'.now()->format('His').'.csv';
 
@@ -264,7 +81,11 @@ class DashboardExportController extends Controller
 
     public function pdf(Request $request)
     {
-        $data = $this->buildSalesData($request);
+        $validated = $this->validateExportInput($request);
+        $data = $this->dashboard->getFullDashboardData(
+            $validated['business_unit'] ?? null,
+            $validated['period_key'] ?? null,
+        );
 
         $pdf = \PDF::loadView('exports.dashboard-ventas-pdf', $data)
             ->setPaper('a4', 'portrait');
@@ -276,7 +97,11 @@ class DashboardExportController extends Controller
 
     public function estadoResultadosExcel(Request $request): StreamedResponse
     {
-        $data = $this->buildEstadoResultadosData($request);
+        $validated = $this->validateExportInput($request);
+        $data = $this->dashboard->getFullDashboardData(
+            $validated['business_unit'] ?? null,
+            $validated['period_key'] ?? null,
+        );
 
         $fileName = 'estado_resultados_'.$data['periodKey'].'_'.now()->format('His').'.csv';
 
@@ -304,7 +129,7 @@ class DashboardExportController extends Controller
             fputcsv($handle, ['  Otros', number_format($data['totalOtros'], 2)]);
             fputcsv($handle, []);
 
-            foreach ($data['groups'] as $group) {
+            foreach ($data['expenseGroups'] as $group) {
                 fputcsv($handle, [strtoupper($group['expense_type'])]);
 
                 foreach ($group['categories'] as $cat) {
@@ -327,7 +152,11 @@ class DashboardExportController extends Controller
 
     public function estadoResultadosPdf(Request $request)
     {
-        $data = $this->buildEstadoResultadosData($request);
+        $validated = $this->validateExportInput($request);
+        $data = $this->dashboard->getFullDashboardData(
+            $validated['business_unit'] ?? null,
+            $validated['period_key'] ?? null,
+        );
 
         $pdf = \PDF::loadView('exports.dashboard-ventas-pdf', $data)
             ->setPaper('a4', 'portrait');

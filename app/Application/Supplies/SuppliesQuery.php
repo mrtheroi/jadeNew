@@ -21,10 +21,10 @@ class SuppliesQuery
      */
     public function base(array $filters): Builder
     {
-        $search       = trim((string)($filters['search'] ?? ''));
+        $search = trim((string) ($filters['search'] ?? ''));
         $businessUnit = $filters['business_unit'] ?? null;
-        $from         = $filters['date_from'] ?? null;
-        $to           = $filters['date_to'] ?? null;
+        $from = $filters['date_from'] ?? null;
+        $to = $filters['date_to'] ?? null;
 
         $q = Supply::query()
             ->with(['category.expenseType'])
@@ -67,11 +67,12 @@ class SuppliesQuery
     public function totalsByUnit(array $filters): Collection
     {
         $businessUnit = $filters['business_unit'] ?? null;
-        $from         = $filters['date_from'] ?? null;
-        $to           = $filters['date_to'] ?? null;
+        $from = $filters['date_from'] ?? null;
+        $to = $filters['date_to'] ?? null;
 
         $q = Supply::query()
-            ->join('categories', 'supplies.category_id', '=', 'categories.id');
+            ->join('categories', 'supplies.category_id', '=', 'categories.id')
+            ->where('supplies.status', '!=', 'cancelado');
 
         if ($businessUnit) {
             $q->where('categories.business_unit', $businessUnit);

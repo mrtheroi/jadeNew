@@ -20,8 +20,8 @@
                 <button
                     type="button"
                     wire:click="create"
-                    class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition
-                           dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                    class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition
+                           dark:bg-emerald-500 dark:hover:bg-emerald-400"
                 >
                     <svg class="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
                     Subir PDF
@@ -34,15 +34,15 @@
             <div class="lg:col-span-3">
                 <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Unidad</label>
                 <select
-                    wire:model.live="filterBusinessUnit"
+                    wire:model.live="business_unit"
                     class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                           focus:border-indigo-500 focus:ring-indigo-500
+                           focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 >
                     <option value="">Todas</option>
-                    <option value="Jade">Jade</option>
-                    <option value="Fuego Ambar">Fuego Ambar</option>
-                    <option value="KIN">KIN</option>
+                    @foreach(\App\Domain\BusinessUnit::cases() as $bu)
+                        <option value="{{ $bu->value }}">{{ $bu->value }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -52,7 +52,7 @@
                     type="month"
                     wire:model.live="period_key"
                     class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                           focus:border-indigo-500 focus:ring-indigo-500
+                           focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 />
             </div>
@@ -64,7 +64,7 @@
                     class="inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
                            dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
                 >
-                    <svg class="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.992 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+                    <svg class="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3ZM16.5 16.5l5 5m0-5-5 5" /></svg>
                     Limpiar
                 </button>
             </div>
@@ -135,7 +135,7 @@
         </div>
 
         <div class="relative">
-            <div wire:loading.flex wire:target="filterBusinessUnit,period_key" class="absolute inset-0 z-20 items-center justify-center bg-white/60 dark:bg-black/40 backdrop-blur-sm">
+            <div wire:loading.flex wire:target="business_unit,period_key" class="absolute inset-0 z-20 items-center justify-center bg-white/60 dark:bg-black/40 backdrop-blur-sm">
                 <div class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm
                             dark:bg-gray-900 dark:text-gray-200 dark:border dark:border-white/10">
                     <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
@@ -168,12 +168,8 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                     @forelse($sales as $sale)
                         @php
-                            $buClass = match($sale->business_unit) {
-                                'Jade' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-900/30 dark:text-emerald-300',
-                                'Fuego Ambar' => 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-300',
-                                'KIN' => 'bg-indigo-50 text-indigo-700 ring-indigo-600/20 dark:bg-indigo-900/30 dark:text-indigo-300',
-                                default => 'bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900/30 dark:text-gray-200',
-                            };
+                            $buClass = \App\Domain\BusinessUnit::tryFrom($sale->business_unit)?->badgeClasses()
+                                ?? 'bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900/30 dark:text-gray-200';
 
                             $statusClass = match($sale->status) {
                                 'completed' => 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-300',
@@ -271,7 +267,7 @@
                                             $reconciliationBtnClass = match($sale->reconciliation_status) {
                                                 'reconciled' => 'text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30',
                                                 'discrepancy' => 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30',
-                                                default => 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-900/30',
+                                                default => 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-900/30',
                                             };
                                         @endphp
                                         <button
@@ -323,8 +319,8 @@
                                     <button
                                         type="button"
                                         wire:click="create"
-                                        class="mt-2 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition
-                                               dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                                        class="mt-2 inline-flex items-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition
+                                               dark:bg-emerald-500 dark:hover:bg-emerald-400"
                                     >
                                         <svg class="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
                                         Subir PDF

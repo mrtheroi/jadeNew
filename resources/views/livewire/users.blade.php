@@ -23,8 +23,8 @@
                 <button
                     type="button"
                     wire:click="create"
-                    class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition
-                           dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                    class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition
+                           dark:bg-emerald-500 dark:hover:bg-emerald-400"
                 >
                     <i class="fa-thin fa-user-plus mr-2"></i>
                     Nuevo
@@ -60,7 +60,7 @@
                             wire:keydown.escape="$set('search','')"
                             placeholder="Nombre, email..."
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-xs text-gray-900 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500
+                                   focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                         />
                     </div>
@@ -73,7 +73,7 @@
                                    dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
                             aria-label="Limpiar búsqueda"
                         >
-                            <i class="fa-thin fa-xmark fa-fw text-[15px]"></i>
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                             <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
                                        shadow-sm transition group-hover:opacity-100 dark:bg-black">
                                 Limpiar
@@ -89,7 +89,7 @@
                 <select
                     wire:model.live="filter_role"
                     class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                           focus:border-indigo-500 focus:ring-indigo-500
+                           focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 >
                     <option value="">Todos</option>
@@ -105,7 +105,7 @@
                 <select
                     wire:model.live="filter_status"
                     class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                           focus:border-indigo-500 focus:ring-indigo-500
+                           focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 >
                     <option value="">Todos</option>
@@ -127,20 +127,19 @@
         @if(count($chips) > 0)
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 @foreach($chips as $c)
-                    <span class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    <span wire:key="chip-{{ $loop->index }}" class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                         <i class="fa-thin {{ $c['icon'] }} text-[12px]"></i>
                         {{ $c['label'] }}
                     </span>
                 @endforeach
 
-                {{-- Botón global limpiar: ideal que llame resetFilters() --}}
                 <button
                     type="button"
                     wire:click="resetFilters"
-                    class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold text-white hover:bg-black transition
-                           dark:bg-white dark:text-gray-900"
+                    class="inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                           dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
                 >
-                    <i class="fa-thin fa-broom-wide"></i>
+                    <svg class="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3ZM16.5 16.5l5 5m0-5-5 5" /></svg>
                     Limpiar
                 </button>
             </div>
@@ -191,7 +190,7 @@
 
                     <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                     @forelse($users as $u)
-                        <tr class="hover:bg-gray-50/60 dark:hover:bg-white/5">
+                        <tr wire:key="user-{{ $u->id }}" class="hover:bg-gray-50/60 dark:hover:bg-white/5">
                             <td class="py-3 pl-4 pr-3 sm:pl-6">
                                 <div class="flex items-center gap-3">
                                     <div class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
@@ -257,8 +256,8 @@
                                     <button
                                         type="button"
                                         wire:click="edit({{ $u->id }})"
-                                        class="group relative inline-flex items-center justify-center rounded-md p-2 text-indigo-600 hover:bg-indigo-50
-                                               dark:text-indigo-300 dark:hover:bg-indigo-900/30 transition"
+                                        class="group relative inline-flex items-center justify-center rounded-md p-2 text-emerald-600 hover:bg-emerald-50
+                                               dark:text-emerald-300 dark:hover:bg-emerald-900/30 transition"
                                         aria-label="Editar"
                                     >
                                         <i class="fa-thin fa-pen-to-square fa-fw text-[14px]"></i>
@@ -301,10 +300,10 @@
                                         <button
                                             type="button"
                                             wire:click="resetFilters"
-                                            class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold text-white hover:bg-black transition
-                                                   dark:bg-white dark:text-gray-900"
+                                            class="inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                                                   dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
                                         >
-                                            <i class="fa-thin fa-broom-wide"></i>
+                                            <svg class="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3ZM16.5 16.5l5 5m0-5-5 5" /></svg>
                                             Limpiar
                                         </button>
                                     </div>
@@ -325,5 +324,8 @@
 
     {{-- MODAL: CREATE / EDIT (partial) --}}
     @include('livewire.modals.form-user')
+
+    {{-- MODAL: DELETE CONFIRMATION --}}
+    @livewire('confirm-modal')
 
 </div>

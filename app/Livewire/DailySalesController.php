@@ -2,10 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Application\DailySales\DailySalesQuery;
+use App\Domain\BusinessUnit;
+use App\Livewire\Concerns\HasSearchFilter;
+use App\Livewire\Forms\DailySaleUploadForm;
+use App\Livewire\Forms\ReconciliationForm;
 use App\Models\DailySale;
 use App\Services\DailySaleExtractionService;
 use Livewire\Attributes\On;
-use Livewire\Attributes\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -13,12 +17,12 @@ use Livewire\WithPagination;
 
 class DailySalesController extends Component
 {
-    use WithFileUploads, WithPagination;
+    use HasSearchFilter, WithFileUploads, WithPagination;
 
     #[Url]
     public string $search = '';
 
-    public string $filterBusinessUnit = '';
+    public string $business_unit = '';
 
     #[Url]
     public string $period_key = '';
@@ -26,17 +30,7 @@ class DailySalesController extends Component
     // Upload modal
     public bool $open = false;
 
-    #[Rule('required|in:Jade,Fuego Ambar,KIN')]
-    public string $business_unit = 'Jade';
-
-    #[Rule('required|date')]
-    public ?string $operation_date = null;
-
-    #[Rule('required|in:1,2')]
-    public int $turno = 1;
-
-    #[Rule('required|file|mimes:pdf|max:10240')]
-    public $file;
+    public DailySaleUploadForm $form;
 
     // Detail modal
     public bool $showDetailModal = false;
@@ -51,30 +45,14 @@ class DailySalesController extends Component
 
     public ?DailySale $reconciliationSale = null;
 
-    public array $corte = [
-        'efectivo_monto' => '',
-        'efectivo_propina' => '',
-        'debito_monto' => '',
-        'debito_propina' => '',
-        'credito_monto' => '',
-        'credito_propina' => '',
-        'credito_cliente_monto' => '',
-        'credito_cliente_propina' => '',
-    ];
-
-    public string $reconciliationNotes = '';
+    public ReconciliationForm $reconciliationForm;
 
     public function mount(): void
     {
         $this->period_key = now()->format('Y-m');
     }
 
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedFilterBusinessUnit(): void
+    public function updatedBusinessUnit(): void
     {
         $this->resetPage();
     }
@@ -86,9 +64,9 @@ class DailySalesController extends Component
 
     public function create(): void
     {
-        $this->reset(['file', 'operation_date', 'turno']);
-        $this->business_unit = 'Jade';
-        $this->turno = 1;
+        $this->form->reset();
+        $this->form->business_unit = BusinessUnit::Jade->value;
+        $this->form->turno = 1;
         $this->resetValidation();
         $this->open = true;
     }
@@ -104,10 +82,7 @@ class DailySalesController extends Component
             return;
         }
 
-        $this->business_unit = $sale->business_unit;
-        $this->operation_date = $sale->operation_date->format('Y-m-d');
-        $this->turno = $sale->turno;
-        $this->reset(['file']);
+        $this->form->fillForRetry($sale);
         $this->resetValidation();
         $this->open = true;
     }
@@ -120,46 +95,44 @@ class DailySalesController extends Component
 
     public function uploadPdf(): void
     {
-        $this->validate();
+        $this->form->validate();
 
-        // Check if completed record already exists for this combo
-        $existing = DailySale::where('business_unit', $this->business_unit)
-            ->whereDate('operation_date', $this->operation_date)
-            ->where('turno', $this->turno)
+        $existing = DailySale::where('business_unit', $this->form->business_unit)
+            ->whereDate('operation_date', $this->form->operation_date)
+            ->where('turno', $this->form->turno)
             ->first();
 
         if ($existing) {
             if ($existing->isCompleted()) {
-                $this->addError('file', 'Ya existe un registro completado para esta unidad, fecha y turno.');
+                $this->addError('form.file', 'Ya existe un registro completado para esta unidad, fecha y turno.');
 
                 return;
             }
 
             if ($existing->isProcessing()) {
-                $this->addError('file', 'Ya hay un archivo en proceso para esta unidad, fecha y turno.');
+                $this->addError('form.file', 'Ya hay un archivo en proceso para esta unidad, fecha y turno.');
 
                 return;
             }
 
-            // Failed record — delete it for retry
             $existing->delete();
         }
 
         try {
             $dailySale = DailySale::create([
-                'business_unit' => $this->business_unit,
-                'operation_date' => $this->operation_date,
-                'turno' => $this->turno,
+                'business_unit' => $this->form->business_unit,
+                'operation_date' => $this->form->operation_date,
+                'turno' => $this->form->turno,
                 'status' => 'processing',
                 'user_id' => auth()->id(),
             ]);
 
-            app(DailySaleExtractionService::class)->process($dailySale, $this->file);
+            app(DailySaleExtractionService::class)->process($dailySale, $this->form->file);
 
             $this->dispatch('notify', message: 'Archivo enviado a procesar.', type: 'success');
             $this->closeModal();
         } catch (\Throwable $e) {
-            $this->addError('file', 'Error al enviar el archivo: '.$e->getMessage());
+            $this->addError('form.file', 'Error al enviar el archivo: '.$e->getMessage());
         }
     }
 
@@ -178,15 +151,7 @@ class DailySalesController extends Component
     public function openReconciliation(int $id): void
     {
         $this->reconciliationSale = DailySale::findOrFail($id);
-
-        // Pre-fill with existing data if already reconciled
-        if ($this->reconciliationSale->reconciliation_data) {
-            $this->corte = array_merge($this->corte, $this->reconciliationSale->reconciliation_data);
-        } else {
-            $this->corte = array_fill_keys(array_keys($this->corte), '');
-        }
-
-        $this->reconciliationNotes = $this->reconciliationSale->reconciliation_notes ?? '';
+        $this->reconciliationForm->fillFromSale($this->reconciliationSale);
         $this->showReconciliationModal = true;
     }
 
@@ -194,8 +159,7 @@ class DailySalesController extends Component
     {
         $this->showReconciliationModal = false;
         $this->reconciliationSale = null;
-        $this->corte = array_fill_keys(array_keys($this->corte), '');
-        $this->reconciliationNotes = '';
+        $this->reconciliationForm->reset();
     }
 
     public function saveReconciliation(): void
@@ -204,24 +168,14 @@ class DailySalesController extends Component
             return;
         }
 
-        $corteData = array_map(fn ($v) => $v === '' ? null : (float) $v, $this->corte);
+        $this->reconciliationForm->validate();
 
-        // Calculate total difference
-        $fields = ['efectivo_monto', 'efectivo_propina', 'debito_monto', 'debito_propina', 'credito_monto', 'credito_propina', 'credito_cliente_monto', 'credito_cliente_propina'];
-        $totalDiff = 0;
-
-        foreach ($fields as $field) {
-            if ($corteData[$field] !== null) {
-                $totalDiff += $corteData[$field] - (float) $this->reconciliationSale->{$field};
-            }
-        }
-
-        $status = abs($totalDiff) < 0.01 ? 'reconciled' : 'discrepancy';
+        $status = $this->reconciliationForm->resolveStatus($this->reconciliationSale);
 
         $this->reconciliationSale->update([
             'reconciliation_status' => $status,
-            'reconciliation_data' => $corteData,
-            'reconciliation_notes' => $this->reconciliationNotes ?: null,
+            'reconciliation_data' => $this->reconciliationForm->resolvedCorte(),
+            'reconciliation_notes' => $this->reconciliationForm->reconciliationNotes ?: null,
             'reconciled_at' => now(),
             'reconciled_by' => auth()->id(),
         ]);
@@ -257,53 +211,21 @@ class DailySalesController extends Component
     public function resetFilters(): void
     {
         $this->search = '';
-        $this->filterBusinessUnit = '';
+        $this->business_unit = '';
         $this->period_key = now()->format('Y-m');
         $this->resetPage();
     }
 
-    private function periodRange(): array
+    public function render(DailySalesQuery $dailySalesQuery)
     {
-        $pk = $this->period_key;
+        [$query, $from, $to, $this->period_key] = $dailySalesQuery->base([
+            'search' => $this->search,
+            'business_unit' => $this->business_unit ?: null,
+            'period_key' => $this->period_key,
+        ]);
 
-        if (empty($pk) || ! preg_match('/^\d{4}-\d{2}$/', $pk)) {
-            $pk = now()->format('Y-m');
-            $this->period_key = $pk;
-        }
-
-        $start = \Carbon\Carbon::createFromFormat('Y-m', $pk)->startOfMonth()->toDateString();
-        $end = \Carbon\Carbon::createFromFormat('Y-m', $pk)->endOfMonth()->toDateString();
-
-        return [$start, $end];
-    }
-
-    public function render()
-    {
-        [$from, $to] = $this->periodRange();
-
-        $query = DailySale::query()
-            ->whereBetween('operation_date', [$from, $to]);
-
-        if ($this->filterBusinessUnit) {
-            $query->where('business_unit', $this->filterBusinessUnit);
-        }
-
-        if ($this->search) {
-            $query->where('business_unit', 'like', "%{$this->search}%");
-        }
-
-        $totalsQuery = (clone $query)->where('status', 'completed');
-
-        $sales = $query->with('user')->orderByDesc('operation_date')->orderBy('turno')->paginate(15);
-
-        $totals = $totalsQuery->selectRaw('
-            SUM(alimentos) as total_alimentos,
-            SUM(bebidas) as total_bebidas,
-            SUM(otros) as total_otros,
-            SUM(subtotal) as total_subtotal,
-            SUM(iva) as total_iva,
-            SUM(total) as total_total
-        ')->first();
+        $sales = (clone $query)->with('user')->orderByDesc('operation_date')->orderBy('turno')->paginate(15);
+        $totals = $dailySalesQuery->totals($query);
 
         return view('livewire.daily-sales-controller', [
             'sales' => $sales,

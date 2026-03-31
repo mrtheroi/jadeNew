@@ -2,23 +2,15 @@
 
 namespace App\Livewire;
 
-use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Notification extends Component
 {
-    public bool $visible = false;
-    public string $message = '';
-    public string $type = 'success'; // success, error, warning
-
     #[On('notify')]
-    public function showNotification(string $message, string $type = 'success')
+    public function showNotification(string $message, string $type = 'success'): void
     {
-        Log::info('llego la notificación');
-        $this->message = $message;
-        $this->type = $type;
-        $this->visible = true;
+        $this->dispatch('toast', message: $message, type: $type);
     }
 
     public function render()

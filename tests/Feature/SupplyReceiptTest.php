@@ -20,11 +20,11 @@ test('supply can be created with receipt image', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
-        ->set('category_id', $this->category->id)
-        ->set('amount', 1500)
-        ->set('status', 'pendiente')
-        ->set('payment_date', now()->format('Y-m-d'))
-        ->set('receipt', $image)
+        ->set('form.category_id', $this->category->id)
+        ->set('form.amount', 1500)
+        ->set('form.status', 'pendiente')
+        ->set('form.payment_date', now()->format('Y-m-d'))
+        ->set('form.receipt', $image)
         ->call('save')
         ->assertHasNoErrors();
 
@@ -41,10 +41,10 @@ test('supply can be created without receipt image', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
-        ->set('category_id', $this->category->id)
-        ->set('amount', 800)
-        ->set('status', 'pagado')
-        ->set('payment_date', now()->format('Y-m-d'))
+        ->set('form.category_id', $this->category->id)
+        ->set('form.amount', 800)
+        ->set('form.status', 'pagado')
+        ->set('form.payment_date', now()->format('Y-m-d'))
         ->call('save')
         ->assertHasNoErrors();
 
@@ -61,11 +61,11 @@ test('supply receipt can be replaced on edit', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
-        ->set('category_id', $this->category->id)
-        ->set('amount', 2000)
-        ->set('status', 'pendiente')
-        ->set('payment_date', now()->format('Y-m-d'))
-        ->set('receipt', $originalImage)
+        ->set('form.category_id', $this->category->id)
+        ->set('form.amount', 2000)
+        ->set('form.status', 'pendiente')
+        ->set('form.payment_date', now()->format('Y-m-d'))
+        ->set('form.receipt', $originalImage)
         ->call('save');
 
     $supply = Supply::first();
@@ -79,7 +79,7 @@ test('supply receipt can be replaced on edit', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('edit', $supply->id)
-        ->set('receipt', $newImage)
+        ->set('form.receipt', $newImage)
         ->call('save')
         ->assertHasNoErrors();
 
@@ -97,11 +97,11 @@ test('supply receipt is deleted when supply is destroyed', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
-        ->set('category_id', $this->category->id)
-        ->set('amount', 500)
-        ->set('status', 'pendiente')
-        ->set('payment_date', now()->format('Y-m-d'))
-        ->set('receipt', $image)
+        ->set('form.category_id', $this->category->id)
+        ->set('form.amount', 500)
+        ->set('form.status', 'pendiente')
+        ->set('form.payment_date', now()->format('Y-m-d'))
+        ->set('form.receipt', $image)
         ->call('save');
 
     $supply = Supply::first();
@@ -124,12 +124,12 @@ test('receipt validation rejects non-image files', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
-        ->set('category_id', $this->category->id)
-        ->set('amount', 1000)
-        ->set('status', 'pendiente')
-        ->set('receipt', $file)
+        ->set('form.category_id', $this->category->id)
+        ->set('form.amount', 1000)
+        ->set('form.status', 'pendiente')
+        ->set('form.receipt', $file)
         ->call('save')
-        ->assertHasErrors(['receipt']);
+        ->assertHasErrors(['form.receipt']);
 });
 
 test('receipt validation rejects files over 5MB', function () {
@@ -138,12 +138,12 @@ test('receipt validation rejects files over 5MB', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
-        ->set('category_id', $this->category->id)
-        ->set('amount', 1000)
-        ->set('status', 'pendiente')
-        ->set('receipt', $image)
+        ->set('form.category_id', $this->category->id)
+        ->set('form.amount', 1000)
+        ->set('form.status', 'pendiente')
+        ->set('form.receipt', $image)
         ->call('save')
-        ->assertHasErrors(['receipt']);
+        ->assertHasErrors(['form.receipt']);
 });
 
 test('show receipt modal displays for supply with image', function () {

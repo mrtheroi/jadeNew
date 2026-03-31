@@ -31,7 +31,7 @@
                         <select
                             wire:model.defer="business_unit"
                             class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-1.5 px-2 text-xs text-gray-900 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500
+                                   focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                         >
                             <option value="">Selecciona una unidad</option>
@@ -55,7 +55,7 @@
                             type="month"
                             wire:model.defer="period_key"
                             class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-1.5 px-2 text-xs text-gray-900 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500
+                                   focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                         >
 
@@ -76,7 +76,7 @@
                         min="0"
                         wire:model.defer="income_amount"
                         class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-1.5 px-2 text-xs text-gray-900 shadow-sm
-                               focus:border-indigo-500 focus:ring-indigo-500
+                               focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                         placeholder="Ej. 1622271.29"
                     >
@@ -94,7 +94,7 @@
                         rows="3"
                         wire:model.defer="income_notes"
                         class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-1.5 px-2 text-xs text-gray-900 shadow-sm
-                               focus:border-indigo-500 focus:ring-indigo-500
+                               focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                         placeholder="Ej. Depósitos banco + terminal + ajustes..."
                     ></textarea>

@@ -2,14 +2,16 @@
 
 namespace App\Livewire;
 
+use App\Application\Helpers\PeriodRange;
 use App\Application\Supplies\SuppliesQuery;
-use App\Models\IncomePeriod;
+use App\Livewire\Concerns\HasModalCrud;
+use App\Livewire\Concerns\HasSearchFilter;
+use App\Livewire\Forms\SupplyForm;
 use App\Models\Supply;
 use App\Services\Reports\ExpensesReportService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
-use Livewire\Attributes\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -17,58 +19,18 @@ use Livewire\WithPagination;
 
 class SuppliesController extends Component
 {
-    use WithFileUploads, WithPagination;
+    use HasModalCrud, HasSearchFilter, WithFileUploads, WithPagination;
 
     // Buscador sincronizado con la URL
     #[Url]
     public string $search = '';
 
-    // (Ya no se usan para filtrar la tabla, pero los dejo por compatibilidad si tu UI los usa)
-    #[Rule('nullable|date')]
-    public ?string $from_date = null;
-
-    #[Rule('nullable|date')]
-    public ?string $to_date = null;
-
-    // Control del modal create/edit
-    public bool $open = false;
+    public SupplyForm $form;
 
     // Modal de detalle
     public bool $showDetailModal = false;
 
     public ?Supply $detailSupply = null;
-
-    // Id del registro actual (para editar)
-    public ?int $supplyId = null;
-
-    // Campos del formulario
-    #[Rule('required|exists:categories,id')]
-    public $category_id = '';
-
-    #[Rule('required|numeric|min:0')]
-    public $amount = '';
-
-    #[Rule('boolean')]
-    public bool $is_adjustment = false;
-
-    #[Rule('nullable|in:efectivo,transferencia,tarjeta_credito,tarjeta_debito,cheque,otro')]
-    public ?string $payment_type = null;
-
-    #[Rule('nullable|date')]
-    public ?string $payment_date = null;
-
-    #[Rule('required|in:pendiente,pagado,cancelado')]
-    public ?string $status = 'pendiente';
-
-    #[Rule('nullable|string|max:1000')]
-    public ?string $notes = null;
-
-    #[Rule('nullable|image|max:5120')]
-    public $receipt = null;
-
-    public ?string $existingReceiptPath = null;
-
-    public bool $removeReceipt = false;
 
     // Modal para ver comprobante
     public bool $showReceiptModal = false;
@@ -79,117 +41,29 @@ class SuppliesController extends Component
     public ?int $deleteId = null;
 
     // Filtros principales
-    public string $business_unit = 'Jade';  // ✅ consistente con DB/UI
+    public string $business_unit = '';
 
     public string $period_key = '';         // YYYY-MM
-
-    // Modal ingreso mensual
-    public bool $openIncomeModal = false;
-
-    public ?string $income_id = null;
-
-    public ?float $income_amount = null;
-
-    public ?string $income_notes = null;
-
-    public ?IncomePeriod $currentIncome = null;
 
     public function mount(): void
     {
         $this->period_key = now()->format('Y-m');
-        $this->loadIncome();
-    }
-
-    private function periodRange(): array
-    {
-        $pk = $this->period_key;
-
-        if (empty($pk) || ! preg_match('/^\d{4}-\d{2}$/', $pk)) {
-            $pk = now()->format('Y-m');
-            $this->period_key = $pk;
-        }
-
-        $start = Carbon::createFromFormat('Y-m', $pk)->startOfMonth()->toDateString();
-        $end = Carbon::createFromFormat('Y-m', $pk)->endOfMonth()->toDateString();
-
-        return [$start, $end];
-    }
-
-    protected function loadIncome(): void
-    {
-        $this->currentIncome = IncomePeriod::query()
-            ->where('business_unit', $this->business_unit)
-            ->where('period_key', $this->period_key)
-            ->first();
-    }
-
-    public function openIncome(): void
-    {
-        $this->loadIncome();
-
-        if ($this->currentIncome) {
-            $this->income_id = (string) $this->currentIncome->id;
-            $this->income_amount = (float) $this->currentIncome->income_amount;
-            $this->income_notes = $this->currentIncome->notes;
-        } else {
-            $this->income_id = null;
-            $this->income_amount = null;
-            $this->income_notes = null;
-        }
-
-        $this->openIncomeModal = true;
-    }
-
-    public function closeIncome(): void
-    {
-        $this->openIncomeModal = false;
-        $this->resetValidation();
-    }
-
-    public function saveIncome(): void
-    {
-        $this->validate([
-            'business_unit' => 'required|in:Jade,Fuego Ambar,KIN',
-            'period_key' => ['required', 'regex:/^\d{4}-\d{2}$/'],
-            'income_amount' => 'required|numeric|min:0',
-            'income_notes' => 'nullable|string|max:1000',
-        ]);
-
-        IncomePeriod::updateOrCreate(
-            [
-                'business_unit' => $this->business_unit,
-                'period_key' => $this->period_key,
-            ],
-            [
-                'income_amount' => $this->income_amount,
-                'notes' => $this->income_notes,
-                'user_id' => auth()->id(),
-            ]
-        );
-
-        $this->loadIncome();
-        $this->openIncomeModal = false;
-
-        $this->dispatch('notify', message: 'Ingreso mensual guardado correctamente.', type: 'success');
     }
 
     public function updatedBusinessUnit(): void
     {
         $this->resetPage();
-        $this->loadIncome();
     }
 
     public function updatedPeriodKey(): void
     {
         $this->resetPage();
-        $this->loadIncome();
     }
 
     public function setCurrentMonth(): void
     {
         $this->period_key = now()->format('Y-m');
         $this->resetPage();
-        $this->loadIncome();
     }
 
     /**
@@ -200,7 +74,7 @@ class SuppliesController extends Component
      */
     public function exportExcel(SuppliesQuery $query, ExpensesReportService $service)
     {
-        [$from, $to] = $this->periodRange();
+        [$from, $to, $this->period_key] = PeriodRange::fromKey($this->period_key);
 
         $filters = [
             'search' => $this->search,
@@ -232,7 +106,7 @@ class SuppliesController extends Component
 
     public function exportPdf(SuppliesQuery $query, ExpensesReportService $service)
     {
-        [$from, $to] = $this->periodRange();
+        [$from, $to, $this->period_key] = PeriodRange::fromKey($this->period_key);
 
         $filters = [
             'search' => $this->search,
@@ -259,12 +133,6 @@ class SuppliesController extends Component
         $name = 'reporte_gastos_'.$this->business_unit.'_'.now()->format('Y-m-d').'.pdf';
 
         return $service->downloadPdf($data, $name);
-    }
-
-    // Al cambiar buscador, volver a página 1
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
     }
 
     public function showDetail(int $id): void
@@ -297,94 +165,52 @@ class SuppliesController extends Component
         $this->receiptUrl = null;
     }
 
-    // Abrir modal en modo "crear"
-    public function create(): void
-    {
-        $this->resetForm();
-        $this->open = true;
-    }
-
     public function clearPeriodFilter(): void
     {
         $this->period_key = now()->format('Y-m');
         $this->resetPage();
-        $this->loadIncome();
     }
 
-    // Abrir modal en modo "editar"
     public function edit(int $id): void
     {
-        $supply = Supply::findOrFail($id);
-
-        $this->supplyId = $supply->id;
-        $this->category_id = $supply->category_id;
-        $this->is_adjustment = ((float) $supply->amount) < 0;
-        $this->amount = abs((float) $supply->amount);
-        $this->payment_type = $supply->payment_type;
-        $this->payment_date = $supply->payment_date?->format('Y-m-d');
-        $this->status = $supply->status;
-        $this->notes = $supply->notes;
-        $this->existingReceiptPath = $supply->receipt_path;
-        $this->receipt = null;
-        $this->removeReceipt = false;
-
+        $this->form->fillFromModel(Supply::findOrFail($id));
         $this->open = true;
-    }
-
-    // Cerrar modal
-    public function closeModal(): void
-    {
-        $this->open = false;
-        $this->resetValidation();
     }
 
     // Guardar (create / update)
     public function save(): void
     {
-        $validated = $this->validate();
+        $validated = $this->form->validate();
 
-        // payment_month automático:
+        // payment_month automatico
         if (! empty($validated['payment_date'])) {
             $date = Carbon::parse($validated['payment_date']);
-            $validated['payment_month'] = $date->format('Y-m'); // Ej: 2025-02
+            $validated['payment_month'] = $date->format('Y-m');
         } else {
             $validated['payment_month'] = null;
         }
 
-        $amount = (float) $validated['amount'];
-
-        // Si es ajuste, lo guardamos negativo
-        if ($this->is_adjustment && $amount > 0) {
-            $amount = -1 * $amount;
-        }
-
-        // Si NO es ajuste y viene negativo, lo corregimos a positivo
-        if (! $this->is_adjustment && $amount < 0) {
-            $amount = abs($amount);
-        }
-
-        $validated['amount'] = $amount;
+        $validated['amount'] = $this->form->resolvedAmount();
 
         $supply = Supply::updateOrCreate(
-            ['id' => $this->supplyId],
+            ['id' => $this->form->supplyId],
             $validated,
         );
 
         // Handle receipt image
-        if ($this->receipt) {
-            // Delete old receipt if replacing
+        if ($this->form->receipt) {
             if ($supply->receipt_path) {
                 Storage::disk('public')->delete($supply->receipt_path);
             }
 
-            $path = $this->receipt->storeAs(
+            $path = $this->form->receipt->storeAs(
                 'receipts',
-                $supply->id.'_'.now()->timestamp.'.'.$this->receipt->getClientOriginalExtension(),
+                $supply->id.'_'.now()->timestamp.'.'.$this->form->receipt->getClientOriginalExtension(),
                 'public'
             );
 
             $supply->update(['receipt_path' => $path]);
-        } elseif ($this->removeReceipt && $supply->receipt_path) {
+        } elseif ($this->form->removeReceipt && $supply->receipt_path) {
             Storage::disk('public')->delete($supply->receipt_path);
             $supply->update(['receipt_path' => null]);
         }
@@ -392,7 +218,7 @@ class SuppliesController extends Component
         $this->dispatch('notify', message: 'El registro se guardó correctamente.', type: 'success');
 
         $this->closeModal();
-        $this->resetForm();
+        $this->form->reset();
     }
 
     // Preparar eliminación (igual que Users)
@@ -416,22 +242,6 @@ class SuppliesController extends Component
         $this->dispatch('notify', message: 'El registro se eliminó con éxito.', type: 'success');
     }
 
-    // Resetear campos de formulario
-    protected function resetForm(): void
-    {
-        $this->supplyId = null;
-        $this->category_id = '';
-        $this->amount = '';
-        $this->payment_type = null;
-        $this->payment_date = null;
-        $this->status = 'pendiente';
-        $this->notes = null;
-        $this->is_adjustment = false;
-        $this->receipt = null;
-        $this->existingReceiptPath = null;
-        $this->removeReceipt = false;
-    }
-
     public function resetFilters(): void
     {
         $this->search = '';
@@ -443,7 +253,7 @@ class SuppliesController extends Component
 
     public function render(SuppliesQuery $query)
     {
-        [$from, $to] = $this->periodRange();
+        [$from, $to, $this->period_key] = PeriodRange::fromKey($this->period_key);
 
         $filters = [
             'search' => $this->search,
@@ -456,16 +266,12 @@ class SuppliesController extends Component
 
         $supplies = $baseQuery->paginate(10);
         $totalsByUnit = $query->totalsByUnit($filters);
-        $incomePeriod = $query->incomePeriod($this->business_unit, $this->period_key);
         $categories = $query->categories();
 
         return view('livewire.supplies-controller', [
             'supplies' => $supplies,
             'categories' => $categories,
             'totalsByUnit' => $totalsByUnit,
-            'incomePeriod' => $incomePeriod,
-
-            // útil para mostrar en UI
             'from_date' => $from,
             'to_date' => $to,
             'periodKey' => $this->period_key,

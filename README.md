@@ -1,5 +1,7 @@
-# Jade
+# Jade v1.1.0
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
+
+> Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Requisitos
 - PHP 8.2+
@@ -336,6 +338,10 @@ vendor/bin/pint
 - **Alertas:** Livewire Alert (jantinnerezo)
 - **Testing:** Pest 3, PHPUnit 11
 - **Formateo:** Laravel Pint
+
+## Version
+
+**v1.1.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT
