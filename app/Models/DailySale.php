@@ -104,7 +104,8 @@ class DailySale extends Model
 
     public function scopeInPeriod(Builder $query, string $from, string $to): Builder
     {
-        return $query->whereBetween('operation_date', [$from, $to]);
+        return $query->whereDate('operation_date', '>=', $from)
+            ->whereDate('operation_date', '<=', $to);
     }
 
     public function scopeByUnit(Builder $query, ?string $unit): Builder

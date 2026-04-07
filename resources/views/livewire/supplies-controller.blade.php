@@ -431,10 +431,10 @@
 
         <div class="p-4 space-y-4">
             <div class="grid gap-3 sm:grid-cols-2">
-                <x-form-field label="Categoría" name="category_id">
+                <x-form-field label="Categoría" name="form.category_id">
                     <select
                         id="category_id"
-                        wire:model.live="category_id"
+                        wire:model.live="form.category_id"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -448,11 +448,11 @@
                     </select>
                 </x-form-field>
 
-                <x-form-field label="Fecha de pago" name="payment_date">
+                <x-form-field label="Fecha de pago" name="form.payment_date">
                     <input
                         id="payment_date"
                         type="date"
-                        wire:model.live="payment_date"
+                        wire:model.live="form.payment_date"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -460,12 +460,12 @@
                 </x-form-field>
 
                 <div>
-                    <x-form-field label="Monto" name="amount">
+                    <x-form-field label="Monto" name="form.amount">
                         <input
                             id="amount"
                             type="number"
                             step="0.01"
-                            wire:model.live="amount"
+                            wire:model.live="form.amount"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -473,16 +473,16 @@
                     </x-form-field>
 
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
-                        <input type="checkbox" wire:model.live="is_adjustment" class="rounded border-gray-300 dark:border-white/15">
+                        <input type="checkbox" wire:model.live="form.is_adjustment" class="rounded border-gray-300 dark:border-white/15">
                         Es ajuste (guardar negativo)
                     </label>
-                    @error('is_adjustment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    @error('form.is_adjustment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                <x-form-field label="Método de pago" name="payment_type">
+                <x-form-field label="Método de pago" name="form.payment_type">
                     <select
                         id="payment_type"
-                        wire:model.live="payment_type"
+                        wire:model.live="form.payment_type"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -497,10 +497,10 @@
                     </select>
                 </x-form-field>
 
-                <x-form-field label="Estado" name="status">
+                <x-form-field label="Estado" name="form.status">
                     <select
                         id="status"
-                        wire:model.live="status"
+                        wire:model.live="form.status"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -512,11 +512,11 @@
                 </x-form-field>
 
                 <div class="sm:col-span-2">
-                    <x-form-field label="Notas" name="notes">
+                    <x-form-field label="Notas" name="form.notes">
                         <textarea
                             id="notes"
                             rows="3"
-                            wire:model.live="notes"
+                            wire:model.live="form.notes"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
