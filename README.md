@@ -1,4 +1,4 @@
-# Jade v1.1.0
+# Jade v1.1.1
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
@@ -248,7 +248,6 @@ resources/views/
 │   │   ├── expense-type-form.blade.php        # Modal formulario de tipo de gasto
 │   │   ├── form-daily-sales.blade.php         # Modal formulario de venta diaria
 │   │   ├── form-incomes.blade.php             # Modal formulario de ingresos
-│   │   ├── form-supplies.blade.php            # Modal formulario de gastos
 │   │   ├── form-user.blade.php                # Modal formulario de usuario
 │   │   └── notification.blade.php             # Modal de notificacion
 │   ├── sales-dashboard.blade.php              # Vista del dashboard de ventas
@@ -341,7 +340,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.1.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.1.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT

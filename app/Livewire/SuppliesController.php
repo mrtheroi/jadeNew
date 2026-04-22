@@ -45,6 +45,10 @@ class SuppliesController extends Component
 
     public string $period_key = '';         // YYYY-MM
 
+    public $categorySearch = '';
+    public $categoryResults = [];
+
+
     public function mount(): void
     {
         $this->period_key = now()->format('Y-m');
@@ -171,6 +175,26 @@ class SuppliesController extends Component
         $this->resetPage();
     }
 
+    private function resetCategorySearch(): void
+    {
+        $this->categorySearch = '';
+        $this->categoryResults = [];
+    }
+
+    public function create(): void
+    {
+        $this->form->reset();
+        $this->resetCategorySearch();
+        $this->open = true;
+    }
+
+    public function closeModal(): void
+    {
+        $this->open = false;
+        $this->resetCategorySearch();
+        $this->resetValidation();
+    }
+
     public function edit(int $id): void
     {
         $this->form->fillFromModel(Supply::findOrFail($id));
@@ -191,6 +215,7 @@ class SuppliesController extends Component
         }
 
         $validated['amount'] = $this->form->resolvedAmount();
+
 
         $supply = Supply::updateOrCreate(
             ['id' => $this->form->supplyId],
@@ -218,6 +243,7 @@ class SuppliesController extends Component
         $this->dispatch('notify', message: 'El registro se guardó correctamente.', type: 'success');
 
         $this->closeModal();
+        $this->resetCategorySearch();
         $this->form->reset();
     }
 
@@ -251,6 +277,42 @@ class SuppliesController extends Component
         $this->resetPage();
     }
 
+    public function updatedCategorySearch(SuppliesQuery $query): void
+    {
+        if (strlen($this->categorySearch) < 2) {
+            $this->categoryResults = [];
+            return;
+        }
+
+        $this->categoryResults = $query->searchCategories($this->categorySearch)
+            ->map(fn ($c) => [
+                'id'                => $c->id,
+                'business_unit'     => $c->business_unit,
+                'expense_type_name' => $c->expenseType?->expense_type_name ?? '—',
+                'expense_name'      => $c->expense_name,
+                'provider_name'     => $c->provider_name,
+            ])
+            ->toArray();
+    }
+
+    public function selectCategory(int $id): void
+    {
+        $cat = collect($this->categoryResults)->firstWhere('id', $id);
+
+        if (! $cat) {
+            return;
+        }
+
+        $this->form->category_id = (string) $id;
+
+        $this->categorySearch = "[{$cat['business_unit']}] "
+            . $cat['expense_type_name']
+            . " — {$cat['expense_name']}"
+            . ($cat['provider_name'] ? " · {$cat['provider_name']}" : '');
+
+        $this->categoryResults = [];
+    }
+
     public function render(SuppliesQuery $query)
     {
         [$from, $to, $this->period_key] = PeriodRange::fromKey($this->period_key);
@@ -266,11 +328,9 @@ class SuppliesController extends Component
 
         $supplies = $baseQuery->paginate(10);
         $totalsByUnit = $query->totalsByUnit($filters);
-        $categories = $query->categories();
 
         return view('livewire.supplies-controller', [
             'supplies' => $supplies,
-            'categories' => $categories,
             'totalsByUnit' => $totalsByUnit,
             'from_date' => $from,
             'to_date' => $to,

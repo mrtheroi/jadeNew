@@ -432,27 +432,45 @@
         <div class="p-4 space-y-4">
             <div class="grid gap-3 sm:grid-cols-2">
                 <x-form-field label="Categoría" name="form.category_id">
-                    <select
-                        id="category_id"
-                        wire:model.live="form.category_id"
-                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
-                               focus:border-emerald-500 focus:ring-emerald-500
-                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
-                    >
-                        <option value="">Selecciona…</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">
-                                [{{ $cat->business_unit }}] {{ $cat->expenseType?->expense_type_name ?? '—' }} — {{ $cat->expense_name }} @if($cat->provider_name) · {{ $cat->provider_name }} @endif
-                            </option>
-                        @endforeach
-                    </select>
-                </x-form-field>
+                    <div class="relative">
+                        <input
+                            type="text"
+                            wire:model.live.debounce.300ms="categorySearch"
+                            x-on:keydown.escape="$wire.set('categoryResults', [])"
+                            placeholder="Buscar categoría..."
+                            class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
+                   focus:border-emerald-500 focus:ring-emerald-500
+                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                        />
 
+                        <div wire:loading wire:target="categorySearch" class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                            Buscando…
+                        </div>
+
+                        @if(!empty($categoryResults))
+                            <div class="absolute z-10 mt-1 w-full rounded-md border bg-white shadow max-h-60 overflow-y-auto
+                        dark:bg-gray-900 dark:border-white/15">
+                                @foreach($categoryResults as $cat)
+                                    <div
+                                        wire:key="cat-{{ $cat['id'] }}"
+                                        wire:click="selectCategory({{ $cat['id'] }})"
+                                        class="px-3 py-2 text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    >
+                                        [{{ $cat['business_unit'] }}]
+                                        {{ $cat['expense_type_name'] }}
+                                        — {{ $cat['expense_name'] }}
+                                        @if($cat['provider_name']) · {{ $cat['provider_name'] }} @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </x-form-field>
                 <x-form-field label="Fecha de pago" name="form.payment_date">
                     <input
                         id="payment_date"
                         type="date"
-                        wire:model.live="form.payment_date"
+                        wire:model="form.payment_date"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -465,7 +483,7 @@
                             id="amount"
                             type="number"
                             step="0.01"
-                            wire:model.live="form.amount"
+                            wire:model="form.amount"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -473,7 +491,7 @@
                     </x-form-field>
 
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
-                        <input type="checkbox" wire:model.live="form.is_adjustment" class="rounded border-gray-300 dark:border-white/15">
+                        <input type="checkbox" wire:model="form.is_adjustment" class="rounded border-gray-300 dark:border-white/15">
                         Es ajuste (guardar negativo)
                     </label>
                     @error('form.is_adjustment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
@@ -482,7 +500,7 @@
                 <x-form-field label="Método de pago" name="form.payment_type">
                     <select
                         id="payment_type"
-                        wire:model.live="form.payment_type"
+                        wire:model="form.payment_type"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -500,7 +518,7 @@
                 <x-form-field label="Estado" name="form.status">
                     <select
                         id="status"
-                        wire:model.live="form.status"
+                        wire:model="form.status"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
                                dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
@@ -516,7 +534,7 @@
                         <textarea
                             id="notes"
                             rows="3"
-                            wire:model.live="form.notes"
+                            wire:model="form.notes"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
                                    dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"

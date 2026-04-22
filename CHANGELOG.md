@@ -5,6 +5,33 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.1.1] - 2026-04-21
+
+### Corregido
+
+- **Estado del buscador de categorías en modal de insumos**: `closeModal()` y `create()` no reseteaban `categorySearch` — al reabrir el modal aparecía el texto de búsqueda anterior
+- **Query innecesaria en selección de categoría**: `selectCategory()` hacía un `Category::findOrFail()` cuando los datos ya estaban cargados en `$categoryResults`. Ahora usa `collect()->firstWhere()` sin consultar la base de datos
+- **`wire:model.live` en campos del formulario de insumos**: 6 campos del modal (fecha de pago, monto, ajuste, método de pago, estado, notas) disparaban queries a la BD en cada interacción del usuario. Cambiados a `wire:model` (diferido)
+
+### Cambiado
+
+- **Debounce de búsqueda de categorías**: Aumentado de 100ms a 300ms para reducir round-trips innecesarios al servidor
+- **Resultados del buscador de categorías**: Mapeados a array plano en `updatedCategorySearch()`, eliminando serialización de modelos Eloquent en estado de Livewire
+- **Búsqueda de categorías case-insensitive**: `SuppliesQuery::searchCategories()` convierte el término a mayúsculas antes del `LIKE`, permitiendo búsquedas en minúsculas cuando los datos están guardados en mayúsculas
+
+### Agregado
+
+- **Indicador de carga en buscador de categorías**: `wire:loading` muestra "Buscando…" mientras se procesa la consulta al servidor
+- **Cierre con Escape del dropdown de categorías**: El dropdown se cierra al presionar Escape sin requerir click fuera
+- **`wire:key` en resultados del dropdown**: Previene problemas de diffing de Livewire en listas dinámicas
+- **Mutators de mayúsculas en modelos**: `Category` (`business_unit`, `expense_name`, `provider_name`) y `ExpenseType` (`expense_type_name`) normalizan los valores a mayúsculas en la capa del modelo, aplicando para formularios, seeders, imports y cualquier otra fuente de datos
+
+### Eliminado
+
+- **`resources/views/livewire/modals/form-supplies.blade.php`**: Archivo con implementación Alpine.js alternativa del formulario de insumos que no estaba incluida en ninguna ruta ni componente
+
+---
+
 ## [1.1.0] - 2026-03-31
 
 ### Added

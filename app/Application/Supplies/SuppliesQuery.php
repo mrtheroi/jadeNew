@@ -99,12 +99,22 @@ class SuppliesQuery
             ->first();
     }
 
-    public function categories(): Collection
+    public function searchCategories(string $term)
     {
-        return Category::with('expenseType')
-            ->orderBy('business_unit')
+        $term = strtoupper(trim($term));
+
+        return Category::query()
+            ->with('expenseType')
+            ->where(function ($q) use ($term) {
+                $q->where('expense_name', 'like', "%{$term}%")
+                    ->orWhere('provider_name', 'like', "%{$term}%")
+                    ->orWhereHas('expenseType', function ($q2) use ($term) {
+                        $q2->where('expense_type_name', 'like', "%{$term}%");
+                    });
+            })
             ->orderBy('expense_name')
-            ->orderBy('provider_name')
+            ->limit(15)
             ->get();
     }
+
 }

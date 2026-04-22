@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +23,21 @@ class Category extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    protected function businessUnit(): Attribute
+    {
+        return Attribute::make(set: fn (string $value) => strtoupper($value));
+    }
+
+    protected function expenseName(): Attribute
+    {
+        return Attribute::make(set: fn (string $value) => strtoupper($value));
+    }
+
+    protected function providerName(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => $value !== null ? strtoupper($value) : null);
+    }
 
     public function scopeActive(Builder $query): Builder
     {

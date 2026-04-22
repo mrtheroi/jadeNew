@@ -6,6 +6,7 @@ trait HasModalCrud
 {
     public bool $open = false;
 
+
     public function create(): void
     {
         $this->form->reset();
@@ -15,6 +16,7 @@ trait HasModalCrud
     public function closeModal(): void
     {
         $this->open = false;
+
         $this->resetValidation();
     }
 }
