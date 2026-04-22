@@ -24,11 +24,6 @@ class Category extends Model
         'is_active' => 'boolean',
     ];
 
-    protected function businessUnit(): Attribute
-    {
-        return Attribute::make(set: fn (string $value) => strtoupper($value));
-    }
-
     protected function expenseName(): Attribute
     {
         return Attribute::make(set: fn (string $value) => strtoupper($value));
