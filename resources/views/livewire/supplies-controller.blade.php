@@ -156,12 +156,72 @@
             </div>
         </div>
 
+        {{-- FILTERS: segunda fila — Tipo y Categoría (cascada) --}}
+        <div class="mt-3 grid gap-3 lg:grid-cols-12">
+            {{-- Tipo de gasto --}}
+            <div class="lg:col-span-4">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Tipo de gasto</label>
+                <select
+                    wire:model.live="expense_type_id"
+                    class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                           focus:border-emerald-500 focus:ring-emerald-500
+                           dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                >
+                    <option value="">Todos los tipos</option>
+                    @foreach($expenseTypes as $type)
+                        <option value="{{ $type->id }}">{{ $type->expense_type_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Categoría --}}
+            <div class="lg:col-span-8">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">
+                    Categoría
+                    @if($expense_type_id)
+                        <span class="ml-1 text-[10px] font-normal text-gray-500 dark:text-gray-400">(filtradas por tipo seleccionado)</span>
+                    @endif
+                </label>
+                <select
+                    wire:model.live="category_id"
+                    class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                           focus:border-emerald-500 focus:ring-emerald-500
+                           dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                >
+                    <option value="">Todas las categorías</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}">
+                            [{{ $cat->business_unit }}] {{ $cat->expenseType?->expense_type_name ?? '—' }} — {{ $cat->expense_name }}@if($cat->provider_name) · {{ $cat->provider_name }}@endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
         {{-- CHIPS: filtros activos --}}
         @php
             $chips = [];
             if (trim($this->search) !== '') $chips[] = ['icon' => 'fa-magnifying-glass', 'label' => "Búsqueda: {$this->search}"];
             if ($businessUnit) $chips[] = ['icon' => 'fa-building', 'label' => "Unidad: {$businessUnit}"];
             if ($periodKey) $chips[] = ['icon' => 'fa-calendar', 'label' => "Periodo: {$periodKey}"];
+
+            if ($expense_type_id) {
+                $selectedType = $expenseTypes->firstWhere('id', (int) $expense_type_id);
+                if ($selectedType) {
+                    $chips[] = ['icon' => 'fa-tag', 'label' => "Tipo: {$selectedType->expense_type_name}"];
+                }
+            }
+
+            if ($category_id) {
+                $selectedCategory = $categories->firstWhere('id', (int) $category_id);
+                if ($selectedCategory) {
+                    $catLabel = $selectedCategory->expense_name;
+                    if ($selectedCategory->provider_name) {
+                        $catLabel .= ' · ' . $selectedCategory->provider_name;
+                    }
+                    $chips[] = ['icon' => 'fa-folder', 'label' => "Categoría: {$catLabel}"];
+                }
+            }
         @endphp
 
         @if(count($chips) > 0)
@@ -187,15 +247,66 @@
     </div>
 
     {{-- CARDS --}}
-    <div class="grid gap-3 md:grid-cols-3">
-        @foreach($totalsByUnit as $unitTotal)
-            <div wire:key="unit-total-{{ $loop->index }}" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-gray-900">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $unitTotal->business_unit }}</p>
-                <p class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
-                    $ {{ number_format((float) $unitTotal->total_amount, 2) }}
+    <div class="space-y-3">
+        {{-- TOTAL GENERAL (sin cancelados) --}}
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-900/10">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                        Total general
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Suma del filtro vigente, excluye cancelados.
+                    </p>
+                </div>
+                <p class="text-2xl font-semibold text-emerald-700 dark:text-emerald-300">
+                    $ {{ number_format($totalGeneral, 2) }}
                 </p>
             </div>
-        @endforeach
+        </div>
+
+        {{-- BREAKDOWN POR TIPO DE GASTO --}}
+        @if($totalsByType->isNotEmpty())
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                @foreach($totalsByType as $row)
+                    <div wire:key="type-total-{{ $row->expense_type_id }}"
+                         class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-gray-900">
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {{ $row->expense_type_name }}
+                        </p>
+                        <p class="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+                            $ {{ number_format((float) $row->total_amount, 2) }}
+                        </p>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-center text-xs text-gray-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-400">
+                Sin movimientos para los filtros aplicados.
+            </div>
+        @endif
+
+        {{-- CANCELADOS (card aparte, solo si hay) --}}
+        @if($cancelledTotal > 0)
+            <div class="rounded-xl border border-rose-200 bg-rose-50/40 p-4 shadow-sm dark:border-rose-500/20 dark:bg-rose-900/10">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-thin fa-triangle-exclamation text-rose-600 dark:text-rose-300"></i>
+                        <div>
+                            <p class="text-xs font-medium uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                                Cancelados
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {{ $cancelledCount }} {{ $cancelledCount === 1 ? 'registro' : 'registros' }} con estado cancelado. No suman al total general.
+                            </p>
+                        </div>
+                    </div>
+                    <p class="text-lg font-semibold text-rose-700 dark:text-rose-300">
+                        $ {{ number_format($cancelledTotal, 2) }}
+                    </p>
+                </div>
+            </div>
+        @endif
     </div>
 
     {{-- TABLE WRAPPER (overlay + sticky header) --}}
@@ -209,7 +320,7 @@
 
         <div class="relative">
             {{-- Loading overlay --}}
-            <div wire:loading.flex wire:target="search,business_unit,period_key" class="absolute inset-0 z-20 items-center justify-center bg-white/60 dark:bg-black/40 backdrop-blur-sm">
+            <div wire:loading.flex wire:target="search,business_unit,period_key,expense_type_id,category_id" class="absolute inset-0 z-20 items-center justify-center bg-white/60 dark:bg-black/40 backdrop-blur-sm">
                 <div class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm
                             dark:bg-gray-900 dark:text-gray-200 dark:border dark:border-white/10">
                     <i class="fa-thin fa-spinner-third animate-spin"></i>

@@ -41,13 +41,21 @@ class SuppliesController extends Component
     public ?int $deleteId = null;
 
     // Filtros principales
+    #[Url]
     public string $business_unit = '';
 
+    #[Url]
     public string $period_key = '';         // YYYY-MM
 
-    public $categorySearch = '';
-    public $categoryResults = [];
+    #[Url]
+    public string $expense_type_id = '';
 
+    #[Url]
+    public string $category_id = '';
+
+    public $categorySearch = '';
+
+    public $categoryResults = [];
 
     public function mount(): void
     {
@@ -56,10 +64,25 @@ class SuppliesController extends Component
 
     public function updatedBusinessUnit(): void
     {
+        // Si cambia la unidad, los filtros dependientes se invalidan.
+        $this->expense_type_id = '';
+        $this->category_id = '';
         $this->resetPage();
     }
 
     public function updatedPeriodKey(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedExpenseTypeId(): void
+    {
+        // Cambiar el tipo limpia la categoría seleccionada (cascada).
+        $this->category_id = '';
+        $this->resetPage();
+    }
+
+    public function updatedCategoryId(): void
     {
         $this->resetPage();
     }
@@ -83,6 +106,8 @@ class SuppliesController extends Component
         $filters = [
             'search' => $this->search,
             'business_unit' => $this->business_unit,
+            'expense_type_id' => $this->expense_type_id,
+            'category_id' => $this->category_id,
             'date_from' => $from,
             'date_to' => $to,
         ];
@@ -115,6 +140,8 @@ class SuppliesController extends Component
         $filters = [
             'search' => $this->search,
             'business_unit' => $this->business_unit,
+            'expense_type_id' => $this->expense_type_id,
+            'category_id' => $this->category_id,
             'date_from' => $from,
             'date_to' => $to,
         ];
@@ -216,7 +243,6 @@ class SuppliesController extends Component
 
         $validated['amount'] = $this->form->resolvedAmount();
 
-
         $supply = Supply::updateOrCreate(
             ['id' => $this->form->supplyId],
             $validated,
@@ -272,6 +298,8 @@ class SuppliesController extends Component
     {
         $this->search = '';
         $this->business_unit = '';
+        $this->expense_type_id = '';
+        $this->category_id = '';
         $this->period_key = now()->format('Y-m');
 
         $this->resetPage();
@@ -281,16 +309,17 @@ class SuppliesController extends Component
     {
         if (strlen($this->categorySearch) < 2) {
             $this->categoryResults = [];
+
             return;
         }
 
         $this->categoryResults = $query->searchCategories($this->categorySearch)
             ->map(fn ($c) => [
-                'id'                => $c->id,
-                'business_unit'     => $c->business_unit,
+                'id' => $c->id,
+                'business_unit' => $c->business_unit,
                 'expense_type_name' => $c->expenseType?->expense_type_name ?? '—',
-                'expense_name'      => $c->expense_name,
-                'provider_name'     => $c->provider_name,
+                'expense_name' => $c->expense_name,
+                'provider_name' => $c->provider_name,
             ])
             ->toArray();
     }
@@ -306,9 +335,9 @@ class SuppliesController extends Component
         $this->form->category_id = (string) $id;
 
         $this->categorySearch = "[{$cat['business_unit']}] "
-            . $cat['expense_type_name']
-            . " — {$cat['expense_name']}"
-            . ($cat['provider_name'] ? " · {$cat['provider_name']}" : '');
+            .$cat['expense_type_name']
+            ." — {$cat['expense_name']}"
+            .($cat['provider_name'] ? " · {$cat['provider_name']}" : '');
 
         $this->categoryResults = [];
     }
@@ -317,21 +346,42 @@ class SuppliesController extends Component
     {
         [$from, $to, $this->period_key] = PeriodRange::fromKey($this->period_key);
 
-        $filters = [
+        // Filtros base que TODOS los dropdowns y la tabla respetan.
+        $baseFilters = [
             'search' => $this->search,
             'business_unit' => $this->business_unit,
             'date_from' => $from,
             'date_to' => $to,
         ];
 
-        $baseQuery = $query->base($filters);
+        // Filtros completos para la tabla y las cards (incluyen tipo y categoría).
+        $tableFilters = $baseFilters + [
+            'expense_type_id' => $this->expense_type_id,
+            'category_id' => $this->category_id,
+        ];
 
-        $supplies = $baseQuery->paginate(10);
-        $totalsByUnit = $query->totalsByUnit($filters);
+        // El dropdown de tipo NO se filtra por sí mismo ni por la categoría seleccionada.
+        $expenseTypes = $query->expenseTypesForFilter(
+            $baseFilters,
+            $this->expense_type_id ?: null,
+        );
+
+        // El dropdown de categoría sí respeta el tipo seleccionado (cascada), pero no a sí mismo.
+        $categories = $query->categoriesForFilter(
+            $baseFilters + ['expense_type_id' => $this->expense_type_id],
+            $this->category_id ?: null,
+        );
+
+        $supplies = $query->base($tableFilters)->paginate(10);
 
         return view('livewire.supplies-controller', [
             'supplies' => $supplies,
-            'totalsByUnit' => $totalsByUnit,
+            'totalGeneral' => $query->totalGeneral($tableFilters),
+            'totalsByType' => $query->totalsByExpenseType($tableFilters),
+            'cancelledTotal' => $query->cancelledTotal($tableFilters),
+            'cancelledCount' => $query->cancelledCount($tableFilters),
+            'expenseTypes' => $expenseTypes,
+            'categories' => $categories,
             'from_date' => $from,
             'to_date' => $to,
             'periodKey' => $this->period_key,

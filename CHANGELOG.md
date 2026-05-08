@@ -5,6 +5,31 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.2.0] - 2026-05-08
+
+### Agregado
+
+- **Filtro por tipo de gasto en Supplies**: dropdown para acotar la tabla y las cards al tipo seleccionado, en cascada con la unidad de negocio activa
+- **Filtro por categoría en Supplies**: dropdown en cascada que se acota al tipo seleccionado, la unidad y los demás filtros activos
+- **Cards de breakdown por tipo de gasto**: el total general se desglosa en N cards (una por cada tipo presente en el filtro), ordenadas por monto. La suma de las cards equivale al total general, dando coherencia entre cabecera y tabla
+- **Card aparte de Cancelados**: muestra monto y cantidad de registros con `status='cancelado'` del filtro vigente. Aparece solo si hay cancelados; no suma al total general (visibilidad sin distorsionar el reporte de gasto efectivo)
+- **Cascada total en dropdowns**: los dropdowns de tipo y categoría solo muestran opciones que tienen registros con todos los filtros vigentes (search + unidad + período). La selección actual se mantiene siempre disponible aunque no matchee con los filtros, evitando que "desaparezca"
+- **`tests/Feature/SuppliesFiltersTest.php`**: 16 tests / 28 assertions cubriendo filtros nuevos, breakdown por tipo, separación de cancelados y cascada de dropdowns en backend y componente Livewire
+- **`tests/Unit/PeriodRangeTest.php`**: 7 tests de regresión para el fix de overflow en febrero (commit c6f42c0)
+
+### Cambiado
+
+- **Cards principales en Supplies**: reemplazadas las cards "una por unidad de negocio" por una card de TOTAL GENERAL prominente + N cards de breakdown por tipo + card de Cancelados aparte cuando aplica
+- **`SuppliesQuery::base()`**: ahora acepta `expense_type_id` y `category_id` como filtros opcionales además de los existentes
+- **Cancelados en cards**: el TOTAL GENERAL y el breakdown por tipo excluyen explícitamente `status='cancelado'`. La tabla los sigue mostrando con su badge para mantener visibilidad del estado
+- **Exports Excel/PDF**: respetan los nuevos filtros de tipo y categoría — lo que ves en la tabla es lo que se exporta
+
+### Eliminado
+
+- **`SuppliesQuery::totalsByUnit()`**: reemplazado por `totalGeneral()`, `totalsByExpenseType()`, `cancelledTotal()` y `cancelledCount()`. Sin uso fuera del controller de Supplies
+
+---
+
 ## [1.1.1] - 2026-04-21
 
 ### Corregido
