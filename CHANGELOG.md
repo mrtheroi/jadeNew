@@ -5,6 +5,41 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.0] - 2026-05-08
+
+### Agregado
+
+- **Órdenes de Compra (OC) postmortem por día y unidad**: nuevo flujo en el módulo de Compras y Pagos para consolidar las compras del día en una OC interna por unidad de negocio
+  - **Generación**: botón «Generar OC del día» en la vista de Supplies que requiere unidad activa. Modal de preview con cantidad de compras y monto total antes de confirmar. Al confirmar, todas las compras del día y unidad sin OC asignada quedan agrupadas en una nueva `PurchaseOrder` que se crea con `status='closed'`
+  - **Numeración**: formato `OC-{Unidad}-{YYYY-MM-DD}` (ej: `OC-Jade-2026-05-08`). Si ya existe una OC para esa combinación, se agrega sufijo `-2`, `-3`, etc.
+  - **Inmutabilidad**: las compras asociadas a una OC cerrada quedan bloqueadas (no se pueden editar ni eliminar). Visualmente aparece un ícono de candado y un badge con el número de OC en la fila
+  - **Anulación**: botón «Anular» que cambia la OC a `status='cancelled'` y libera todos los supplies asociados (`purchase_order_id = null`), permitiendo nuevamente su edición
+- **Módulo nuevo «Órdenes de Compra»** (`/ordenes-compra`):
+  - Nuevo item en sidebar bajo grupo Platform
+  - Listado paginado con filtros (search en número y notas, unidad, estado, rango de fechas)
+  - Cards de resumen: total facturado en OCs cerradas + breakdown por unidad + card aparte de OCs anuladas
+  - Modal de detalle con desglose de las compras agrupadas por proveedor, subtotales y total general
+  - Botones de Anular y Exportar PDF en el detalle y en la fila del listado
+- **PDF de OC** (`/ordenes-compra/{id}/pdf`): documento interno con encabezado (número, fecha, unidad, estado), tabla de compras agrupadas por proveedor con subtotales, total general, área de firmas (generó/recibió) y footer con timestamp
+- **Tabla `purchase_orders`** con: `oc_number` (unique), `oc_date`, `business_unit`, `total_amount` y `total_items` denormalizados, `notes`, `status` (closed/cancelled), `created_by` (FK a users con auditoría), `closed_at`, timestamps. Índices sobre business_unit, oc_date y status
+- **Columna `purchase_order_id`** en `supplies`: FK nullable a `purchase_orders` con `nullOnDelete`. Las 291 compras existentes quedan con `null` (lo decidido para histórico)
+- **Estructura del módulo** siguiendo la convención modular:
+  - `app/Application/PurchaseOrders/PurchaseOrdersQuery.php` — query layer con filtros, totales y breakdown
+  - `app/Livewire/Expenses/PurchaseOrdersController.php` — Livewire del listado, detalle y anulación
+  - `app/Models/PurchaseOrder.php` con scopes (`closed`, `cancelled`), relaciones (`supplies`, `creator`) y helpers (`isClosed`, `isCancelled`)
+  - `app/Services/PurchaseOrderGenerator.php` — servicio con métodos `generate()`, `cancel()` y `eligibleSupplies()`. Usa transacción para atomicidad
+  - `app/Http/Controllers/PurchaseOrderPdfController.php` + `resources/views/reports/purchase-order-pdf.blade.php` — generación con dompdf
+- **`tests/Feature/PurchaseOrdersTest.php`**: 16 tests / 29 assertions cubriendo generación (con sufijo de regeneración, exclusión de compras con OC, manejo de fecha y unidad), inmutabilidad (`isLocked` con OC cerrada/cancelada/sin OC), anulación que libera supplies, y flujo Livewire completo (preview, confirmación, bloqueo de edit/delete)
+
+### Cambiado
+
+- **`Supply::isLocked()`**: nuevo helper en el modelo que devuelve `true` cuando la compra pertenece a una OC cerrada
+- **`SuppliesController::edit()` y `destroy()`**: ahora chequean `isLocked()` antes de permitir la operación. Si está bloqueada, devuelven una notificación de warning explicando que hay que anular la OC para liberarla
+- **`SuppliesQuery::base()`**: agrega `purchaseOrder` al eager loading para evitar N+1 al renderizar el ícono de candado en el listado
+- **Vista de Supplies**: cada fila muestra el badge del número de OC y un ícono de candado cuando aplica. Los botones de editar/eliminar quedan deshabilitados visualmente (`opacity-30`, cursor not-allowed) con tooltip «Bloqueada por OC»
+
+---
+
 ## [1.3.0] - 2026-05-08
 
 ### Agregado

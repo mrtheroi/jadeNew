@@ -19,6 +19,20 @@
 
             {{-- ACTIONS --}}
             <div class="flex flex-wrap items-center gap-2">
+                {{-- Generar OC del día --}}
+                @if($business_unit)
+                    <button
+                        type="button"
+                        wire:click="previewGeneratePurchaseOrder"
+                        class="inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition
+                               dark:border-indigo-500/30 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
+                        title="Genera una OC consolidando las compras de hoy de la unidad activa"
+                    >
+                        <i class="fa-thin fa-file-invoice mr-2"></i>
+                        Generar OC del día
+                    </button>
+                @endif
+
                 {{-- Nuevo --}}
                 <button
                     type="button"
@@ -377,16 +391,29 @@
                             $typeName = $supply->category?->expenseType?->expense_type_name ?? '—';
                             $catName  = $supply->category?->expense_name ?? '—';
                             $provName = $supply->category?->provider_name ?? null;
+                            $locked = $supply->isLocked();
                         @endphp
 
                         <tr wire:key="supply-{{ $supply->id }}" class="hover:bg-gray-50/60 dark:hover:bg-white/5">
                             <td class="whitespace-nowrap py-3 pl-4 pr-3 text-sm text-gray-900 sm:pl-6 dark:text-white">
-                                {{ optional($supply->payment_date)->format('Y-m-d') ?? '—' }}
-                                @if($isAdj)
-                                    <span class="ml-2 inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                                        Ajuste
-                                    </span>
-                                @endif
+                                <div class="flex items-center gap-2">
+                                    @if($locked)
+                                        <i class="fa-thin fa-lock text-indigo-600 dark:text-indigo-300" title="Asociada a {{ $supply->purchaseOrder?->oc_number }}"></i>
+                                    @endif
+                                    <span>{{ optional($supply->payment_date)->format('Y-m-d') ?? '—' }}</span>
+                                </div>
+                                <div class="mt-1 flex flex-wrap items-center gap-1">
+                                    @if($isAdj)
+                                        <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                            Ajuste
+                                        </span>
+                                    @endif
+                                    @if($supply->purchase_order_id)
+                                        <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-500/30">
+                                            {{ $supply->purchaseOrder?->oc_number }}
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
 
                             <td class="whitespace-nowrap px-3 py-3 text-sm">
@@ -458,14 +485,15 @@
                                     <button
                                         type="button"
                                         wire:click="edit({{ $supply->id }})"
+                                        @if($locked) disabled @endif
                                         class="group relative inline-flex items-center justify-center rounded-md p-2 text-emerald-600 hover:bg-emerald-50
-                                               dark:text-emerald-300 dark:hover:bg-emerald-900/30 transition"
+                                               dark:text-emerald-300 dark:hover:bg-emerald-900/30 transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                         aria-label="Editar"
                                     >
                                         <i class="fa-thin fa-pen-to-square fa-fw text-[14px]"></i>
                                         <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
                                                    shadow-sm transition group-hover:opacity-100 dark:bg-black">
-                                            Editar
+                                            {{ $locked ? 'Bloqueada por OC' : 'Editar' }}
                                         </span>
                                     </button>
 
@@ -474,14 +502,15 @@
                                         type="button"
                                         wire:click="deleteConfirmation({{ $supply->id }})"
                                         wire:loading.attr="disabled"
+                                        @if($locked) disabled @endif
                                         class="group relative inline-flex items-center justify-center rounded-md p-2 text-rose-600 hover:bg-rose-50
-                                               dark:text-rose-300 dark:hover:bg-rose-900/30 transition disabled:opacity-50"
+                                               dark:text-rose-300 dark:hover:bg-rose-900/30 transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                         aria-label="Eliminar"
                                     >
                                         <i class="fa-thin fa-trash fa-fw text-[14px]"></i>
                                         <span class="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] text-white opacity-0
                                                    shadow-sm transition group-hover:opacity-100 dark:bg-black">
-                                            Eliminar
+                                            {{ $locked ? 'Bloqueada por OC' : 'Eliminar' }}
                                         </span>
                                     </button>
                                 </div>
@@ -811,6 +840,67 @@
                            dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
                 >
                     Cerrar
+                </button>
+            </div>
+        </x-modal>
+    @endif
+
+
+    {{-- MODAL: GENERAR OC DEL DÍA --}}
+    @if($showGenerateOcModal)
+        <x-modal wire:model="showGenerateOcModal" maxWidth="lg">
+            <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="fa-thin fa-file-invoice mr-2 text-indigo-600 dark:text-indigo-300"></i>
+                    Generar Orden de Compra del día
+                </h3>
+            </div>
+
+            <div class="p-4 space-y-4">
+                <div class="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 text-sm dark:border-indigo-500/20 dark:bg-indigo-900/10">
+                    <p class="text-gray-700 dark:text-gray-200">
+                        Vas a generar una OC consolidando las compras de hoy de la unidad <strong>{{ $business_unit }}</strong>.
+                    </p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Una vez generada, la OC se cierra automáticamente y las compras asociadas no se podrán editar ni eliminar
+                        hasta que se anule la OC.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div class="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800/40">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Fecha</div>
+                        <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $ocPreviewDate }}</div>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800/40">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Compras</div>
+                        <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $ocPreviewCount }}</div>
+                    </div>
+                    <div class="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800/40">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</div>
+                        <div class="mt-1 font-semibold text-emerald-700 dark:text-emerald-300">$ {{ number_format($ocPreviewTotal, 2) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3 dark:border-white/10">
+                <button
+                    type="button"
+                    wire:click="closeGenerateOcModal"
+                    class="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition
+                           dark:border-white/10 dark:text-gray-100 dark:hover:bg-white/5"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="button"
+                    wire:click="confirmGeneratePurchaseOrder"
+                    wire:loading.attr="disabled"
+                    class="rounded-md bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition disabled:opacity-50
+                           dark:bg-indigo-500 dark:hover:bg-indigo-400"
+                >
+                    <span wire:loading.remove wire:target="confirmGeneratePurchaseOrder">Confirmar y generar OC</span>
+                    <span wire:loading wire:target="confirmGeneratePurchaseOrder">Generando…</span>
                 </button>
             </div>
         </x-modal>

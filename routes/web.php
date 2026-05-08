@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\DashboardExportController;
+use App\Http\Controllers\PurchaseOrderPdfController;
 use App\Livewire\Expenses\CategoryController;
 use App\Livewire\Expenses\ExpenseTypeController;
+use App\Livewire\Expenses\PurchaseOrdersController;
 use App\Livewire\Expenses\SuppliesController;
 use App\Livewire\HumanResources\EmployeesController;
 use App\Livewire\Sales\DailySalesController;
@@ -45,6 +47,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('supplies', SuppliesController::class)->name('supplies');
 
     Route::get('expense-types', ExpenseTypeController::class)->name('expense-types');
+
+    // Órdenes de Compra (postmortem por día y unidad)
+    Route::get('ordenes-compra', PurchaseOrdersController::class)->name('ordenes-compra');
+    Route::get('ordenes-compra/{purchaseOrder}/pdf', [PurchaseOrderPdfController::class, 'show'])
+        ->name('ordenes-compra.pdf');
 
     // Recursos Humanos
     Route::get('rrhh/empleados', EmployeesController::class)->name('rrhh.empleados');

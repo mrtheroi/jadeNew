@@ -13,6 +13,7 @@ class Supply extends Model
 
     protected $fillable = [
         'category_id',
+        'purchase_order_id',
         'amount',
         'payment_type',
         'payment_date',
@@ -49,5 +50,20 @@ class Supply extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function purchaseOrder()
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    /**
+     * Una compra está bloqueada para edición/eliminación si pertenece
+     * a una OC cerrada (la OC anula la mutabilidad de sus compras).
+     */
+    public function isLocked(): bool
+    {
+        return $this->purchase_order_id !== null
+            && $this->purchaseOrder?->isClosed() === true;
     }
 }

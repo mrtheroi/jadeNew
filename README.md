@@ -1,4 +1,4 @@
-# Jade v1.3.0
+# Jade v1.4.0
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
@@ -89,6 +89,8 @@ Cada registro de ventas, gastos, categorias e ingresos esta asociado a una unida
 | GET | `/supplies` | SuppliesController | CRUD de gastos e insumos |
 | GET | `/categories` | CategoryController | Catalogo de categorias de gasto |
 | GET | `/expense-types` | ExpenseTypeController | Catalogo de tipos de gasto |
+| GET | `/ordenes-compra` | PurchaseOrdersController | Listado de OCs (postmortem por dia y unidad) |
+| GET | `/ordenes-compra/{id}/pdf` | PurchaseOrderPdfController | PDF interno de una OC |
 | GET | `/users` | UserController | Gestion de usuarios |
 | GET | `/rrhh/empleados` | EmployeesController | Gestion de empleados (RRHH) |
 | GET | `/dashboard/ventas/export/excel` | DashboardExportController | Exportar reporte de ventas a CSV |
@@ -116,6 +118,8 @@ app/
 │   ├── HumanResources/
 │   │   └── Employees/
 │   │       └── EmployeesQuery.php             # Query layer de empleados (filtros, totales, breakdown por unidad)
+│   ├── PurchaseOrders/
+│   │   └── PurchaseOrdersQuery.php            # Query layer de OCs (filtros, totales, breakdown por unidad)
 │   └── Supplies/
 │       └── SuppliesQuery.php                  # Query builder con filtros para tabla de supplies
 ├── Domain/
@@ -130,6 +134,7 @@ app/
 │   ├── Controllers/
 │   │   ├── Controller.php                     # Controlador base
 │   │   ├── DashboardExportController.php      # Exportacion del dashboard a Excel y PDF
+│   │   ├── PurchaseOrderPdfController.php     # Genera el PDF de una OC con dompdf
 │   │   └── Api/
 │   │       └── LlamaWebhookController.php     # Receptor del webhook de LlamaIndex
 │   └── Middleware/
@@ -154,7 +159,8 @@ app/
 │   ├── Expenses/
 │   │   ├── CategoryController.php             # CRUD de categorias de gasto
 │   │   ├── ExpenseTypeController.php          # CRUD de tipos de gasto
-│   │   ├── SuppliesController.php             # CRUD de gastos/insumos con exportacion
+│   │   ├── PurchaseOrdersController.php       # Listado, detalle y anulacion de OCs
+│   │   ├── SuppliesController.php             # CRUD de gastos/insumos con exportacion y bloqueo por OC
 │   │   └── Forms/
 │   │       ├── CategoryForm.php               # Form de categoria
 │   │       ├── ExpenseTypeForm.php            # Form de tipo de gasto
@@ -174,7 +180,8 @@ app/
 │   ├── Employee.php                           # Empleado de RRHH con scopes activo/inactivo y accessor de edad
 │   ├── ExpenseType.php                        # Tipo de gasto (Luz, Renta, etc.)
 │   ├── IncomePeriod.php                       # Ingreso mensual por unidad de negocio
-│   ├── Supply.php                             # Gasto/insumo con estatus de pago
+│   ├── PurchaseOrder.php                      # OC postmortem con relacion a supplies y creator
+│   ├── Supply.php                             # Gasto/insumo con relacion a OC y helper isLocked()
 │   └── User.php                               # Usuario con roles Spatie y soporte 2FA
 ├── Providers/
 │   ├── AppServiceProvider.php                 # Service provider principal
@@ -183,6 +190,7 @@ app/
 └── Services/
     ├── LlamaIndexService.php                  # Cliente HTTP para LlamaIndex Cloud API
     ├── DailySaleExtractionMapper.php          # Mapeo de JSON LlamaIndex a campos de daily_sales
+    ├── PurchaseOrderGenerator.php             # Servicio: genera OC del dia, anula OC liberando supplies
     └── Reports/
         └── ExpensesReportService.php          # Logica de generacion de reportes de gastos (Excel/PDF)
 
@@ -205,6 +213,7 @@ database/
 ├── factories/
 │   ├── DailySaleFactory.php                   # Factory para ventas diarias
 │   ├── EmployeeFactory.php                    # Factory para empleados (con states inactive y forUnit)
+│   ├── PurchaseOrderFactory.php               # Factory para OCs (con states cancelled y forUnit)
 │   └── UserFactory.php                        # Factory para usuarios
 ├── migrations/
 │   ├── 0001_01_01_000000_create_users_table.php
@@ -218,7 +227,9 @@ database/
 │   ├── 2025_12_09_..._create_supplies_table.php
 │   ├── 2026_02_01_..._create_income_periods_table.php
 │   ├── 2026_03_04_..._create_daily_sales_table.php
-│   └── 2026_05_08_..._create_employees_table.php
+│   ├── 2026_05_08_..._create_employees_table.php
+│   ├── 2026_05_08_..._create_purchase_orders_table.php
+│   └── 2026_05_08_..._add_purchase_order_id_to_supplies_table.php
 └── seeders/
     ├── DatabaseSeeder.php                     # Seeder principal
     └── RolSeeder.php                          # Roles (Super, Admin, User) y permisos
@@ -289,6 +300,8 @@ resources/views/
 │   ├── expenses/
 │   │   ├── category-controller.blade.php      # Vista de categorias
 │   │   ├── expense-type.blade.php             # Vista de tipos de gasto
+│   │   ├── purchase-order-detail-modal.blade.php  # Modal de detalle de OC con desglose por proveedor
+│   │   ├── purchase-orders-controller.blade.php   # Vista del listado de OCs
 │   │   └── supplies-controller.blade.php      # Vista de gastos/insumos
 │   ├── users/
 │   │   └── users.blade.php                    # Vista de gestion de usuarios
@@ -298,7 +311,8 @@ resources/views/
 │   ├── head.blade.php                         # Head HTML (meta, scripts, styles)
 │   └── settings-heading.blade.php             # Encabezado de paginas de settings
 ├── reports/
-│   └── expenses-pdf.blade.php                 # Template PDF del reporte de gastos
+│   ├── expenses-pdf.blade.php                 # Template PDF del reporte de gastos
+│   └── purchase-order-pdf.blade.php           # Template PDF de OC (encabezado, agrupado por proveedor, firma)
 ├── dashboard.blade.php                        # Vista base del dashboard
 └── welcome.blade.php                          # Pagina de bienvenida
 
@@ -320,6 +334,7 @@ tests/
 │   ├── DashboardTest.php                      # Tests del dashboard
 │   ├── EmployeesCrudTest.php                  # Tests del CRUD de empleados (modelo, query, Livewire)
 │   ├── ExampleTest.php                        # Test de ejemplo
+│   ├── PurchaseOrdersTest.php                 # Tests de OCs (generador, inmutabilidad, anulacion, Livewire)
 │   └── Settings/
 │       ├── PasswordUpdateTest.php             # Tests de actualizacion de contrasena
 │       ├── ProfileUpdateTest.php              # Tests de actualizacion de perfil
@@ -374,7 +389,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.3.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.4.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT

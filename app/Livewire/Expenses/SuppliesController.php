@@ -8,8 +8,10 @@ use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
 use App\Livewire\Expenses\Forms\SupplyForm;
 use App\Models\Supply;
+use App\Services\PurchaseOrderGenerator;
 use App\Services\Reports\ExpensesReportService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -39,6 +41,15 @@ class SuppliesController extends Component
 
     // Para confirmar eliminación (igual que Users)
     public ?int $deleteId = null;
+
+    // Modal: generar OC del día
+    public bool $showGenerateOcModal = false;
+
+    public ?string $ocPreviewDate = null;
+
+    public int $ocPreviewCount = 0;
+
+    public float $ocPreviewTotal = 0.0;
 
     // Filtros principales
     #[Url]
@@ -224,7 +235,15 @@ class SuppliesController extends Component
 
     public function edit(int $id): void
     {
-        $this->form->fillFromModel(Supply::findOrFail($id));
+        $supply = Supply::with('purchaseOrder')->findOrFail($id);
+
+        if ($supply->isLocked()) {
+            $this->dispatch('notify', message: 'Esta compra está asociada a una OC cerrada y no puede editarse. Anulá la OC para liberarla.', type: 'warning');
+
+            return;
+        }
+
+        $this->form->fillFromModel($supply);
         $this->open = true;
     }
 
@@ -283,7 +302,13 @@ class SuppliesController extends Component
     #[On('deleteConfirmed')]
     public function destroy(int $id): void
     {
-        $supply = Supply::findOrFail($id);
+        $supply = Supply::with('purchaseOrder')->findOrFail($id);
+
+        if ($supply->isLocked()) {
+            $this->dispatch('notify', message: 'Esta compra pertenece a una OC cerrada y no puede eliminarse.', type: 'warning');
+
+            return;
+        }
 
         if ($supply->receipt_path) {
             Storage::disk('public')->delete($supply->receipt_path);
@@ -292,6 +317,64 @@ class SuppliesController extends Component
         $supply->delete();
 
         $this->dispatch('notify', message: 'El registro se eliminó con éxito.', type: 'success');
+    }
+
+    /**
+     * Abre el modal de preview con las compras elegibles del día y unidad activos.
+     * Requiere que el usuario tenga una unidad seleccionada (sino no se sabe qué OC generar).
+     */
+    public function previewGeneratePurchaseOrder(PurchaseOrderGenerator $generator): void
+    {
+        if (! $this->business_unit) {
+            $this->dispatch('notify', message: 'Seleccioná una unidad de negocio antes de generar la OC del día.', type: 'warning');
+
+            return;
+        }
+
+        $date = Carbon::today();
+        $eligible = $generator->eligibleSupplies($this->business_unit, $date);
+
+        if ($eligible->isEmpty()) {
+            $this->dispatch('notify', message: 'No hay compras del día sin OC para esta unidad.', type: 'warning');
+
+            return;
+        }
+
+        $this->ocPreviewDate = $date->toDateString();
+        $this->ocPreviewCount = $eligible->count();
+        $this->ocPreviewTotal = (float) $eligible->sum('amount');
+        $this->showGenerateOcModal = true;
+    }
+
+    public function confirmGeneratePurchaseOrder(PurchaseOrderGenerator $generator): void
+    {
+        if (! $this->business_unit || ! $this->ocPreviewDate) {
+            $this->showGenerateOcModal = false;
+
+            return;
+        }
+
+        try {
+            $oc = $generator->generate(
+                $this->business_unit,
+                Carbon::parse($this->ocPreviewDate),
+                (int) Auth::id(),
+            );
+
+            $this->dispatch('notify', message: "OC {$oc->oc_number} generada con éxito.", type: 'success');
+        } catch (\RuntimeException $e) {
+            $this->dispatch('notify', message: $e->getMessage(), type: 'warning');
+        }
+
+        $this->showGenerateOcModal = false;
+        $this->ocPreviewDate = null;
+        $this->ocPreviewCount = 0;
+        $this->ocPreviewTotal = 0.0;
+    }
+
+    public function closeGenerateOcModal(): void
+    {
+        $this->showGenerateOcModal = false;
     }
 
     public function resetFilters(): void

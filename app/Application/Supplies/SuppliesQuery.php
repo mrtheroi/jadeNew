@@ -33,7 +33,7 @@ class SuppliesQuery
         $to = $filters['date_to'] ?? null;
 
         $q = Supply::query()
-            ->with(['category.expenseType'])
+            ->with(['category.expenseType', 'purchaseOrder'])
             ->orderByDesc('payment_date')
             ->orderByDesc('id');
 
