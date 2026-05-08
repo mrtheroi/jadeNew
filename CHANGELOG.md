@@ -5,6 +5,14 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.4.1] - 2026-05-08
+
+### Corregido
+
+- **Orden de ejecución de las migrations de OC**: las dos migrations introducidas en 1.4.0 (`create_purchase_orders_table` y `add_purchase_order_id_to_supplies_table`) compartían exactamente el mismo timestamp, por lo que Laravel las ordenaba alfabéticamente y ejecutaba primero la `add_...` (que crea la FK hacia `purchase_orders`). Como la tabla `purchase_orders` aún no existía, fallaba con `SQLSTATE[42P01]: Undefined table: relation "purchase_orders" does not exist`. El fix renombra la migration de `add_...` con timestamp `+1` segundo para garantizar que `create_purchase_orders_table` se ejecute primero. PostgreSQL maneja DDL transaccional, así que el fallo previo no dejó cambios parciales en la BD: ambas migrations corren limpio una vez aplicado el fix.
+
+---
+
 ## [1.4.0] - 2026-05-08
 
 ### Agregado
