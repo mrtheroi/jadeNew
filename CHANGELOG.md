@@ -5,6 +5,34 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.3.0] - 2026-05-08
+
+### Agregado
+
+- **Módulo de Recursos Humanos — CRUD de Empleados**: primer módulo del área de RRHH, sentando la base para los siguientes (Asistencia, Vacaciones, Nómina)
+  - Listado paginado con búsqueda (nombre, email, número de empleado, CURP), filtro por unidad de negocio (Jade/Fuego Ambar/KIN) y filtro por estado (activos / inactivos / todos)
+  - Card de total de empleados activos + breakdown por unidad de negocio + card aparte de empleados dados de baja cuando aplica
+  - Modal de alta/edición agrupado en 4 secciones visuales: Identificación, Datos personales, Datos laborales, Contacto de emergencia
+  - Modal de detalle completo con todos los campos del empleado y edad calculada automáticamente desde `birth_date`
+  - Estado del empleado con manejo de baja: campo `is_active` + `terminated_at` (requerido cuando `is_active=false`); al reactivar un empleado se limpia automáticamente `terminated_at`
+- **Tabla `employees`** con 21 campos editables agrupados en identificación, datos personales (`birth_date`, género, estado civil, nacionalidad, hijos, dirección), datos laborales (`business_unit`, departamento, gerente, fecha de ingreso) y contacto de emergencia (nombre, teléfono, parentesco). Edad NO se persiste, se calcula desde `birth_date` con accessor del modelo
+- **Estructura del módulo** siguiendo la convención modular establecida en 1.2.1:
+  - `app/Application/HumanResources/Employees/EmployeesQuery.php` — query layer con métodos `base()`, `totalActive()`, `totalInactive()`, `totalsByUnit()`
+  - `app/Livewire/HumanResources/EmployeesController.php` — componente Livewire del listado y CRUD
+  - `app/Livewire/HumanResources/Forms/EmployeeForm.php` — formulario con validaciones, regla `terminated_at` requerido cuando `is_active=false`
+  - `app/Models/Employee.php` con scopes (`active`, `inactive`) y accessor `age`
+- **Ruta** `GET /rrhh/empleados` con nombre `rrhh.empleados`
+- **Sidebar**: nuevo grupo "Recursos Humanos" con el item "Empleados", separado del grupo "Platform" para diferenciar dominios
+- **`tests/Feature/EmployeesCrudTest.php`**: 18 tests / 35 assertions cubriendo modelo (accessor de edad, scopes), filtros del query (search, business_unit, status, totales), CRUD del componente Livewire (alta, edición, baja, validaciones críticas) y limpieza de filtros
+
+### Notas
+
+- **Edad calculada en UI**: por decisión de producto la edad se obtiene desde `birth_date` con `Carbon::diffInYears`. No se persiste para evitar inconsistencias temporales
+- **`gender` y `marital_status`**: se manejan como strings con validación `in:` por simplicidad. Si en el futuro se reportan estadísticamente, se pueden migrar a enums PHP
+- **Permisos**: el módulo accede al admin del sistema sin filtros de roles. Cuando entre el módulo de Asistencia se planeará el sistema de permisos por unidad
+
+---
+
 ## [1.2.1] - 2026-05-08
 
 ### Cambiado

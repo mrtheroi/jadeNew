@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardExportController;
 use App\Livewire\Expenses\CategoryController;
 use App\Livewire\Expenses\ExpenseTypeController;
 use App\Livewire\Expenses\SuppliesController;
+use App\Livewire\HumanResources\EmployeesController;
 use App\Livewire\Sales\DailySalesController;
 use App\Livewire\Sales\SalesDashboard;
 use App\Livewire\Users\UserController;
@@ -44,6 +45,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('supplies', SuppliesController::class)->name('supplies');
 
     Route::get('expense-types', ExpenseTypeController::class)->name('expense-types');
+
+    // Recursos Humanos
+    Route::get('rrhh/empleados', EmployeesController::class)->name('rrhh.empleados');
+
     Route::redirect('settings', 'settings/profile');
 
     Volt::route('settings/profile', 'settings.profile')->name('profile.edit');

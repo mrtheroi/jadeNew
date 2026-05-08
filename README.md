@@ -1,4 +1,4 @@
-# Jade v1.2.1
+# Jade v1.3.0
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
@@ -90,6 +90,7 @@ Cada registro de ventas, gastos, categorias e ingresos esta asociado a una unida
 | GET | `/categories` | CategoryController | Catalogo de categorias de gasto |
 | GET | `/expense-types` | ExpenseTypeController | Catalogo de tipos de gasto |
 | GET | `/users` | UserController | Gestion de usuarios |
+| GET | `/rrhh/empleados` | EmployeesController | Gestion de empleados (RRHH) |
 | GET | `/dashboard/ventas/export/excel` | DashboardExportController | Exportar reporte de ventas a CSV |
 | GET | `/dashboard/ventas/export/pdf` | DashboardExportController | Exportar reporte de ventas a PDF |
 | GET | `/dashboard/estado-resultados/export/excel` | DashboardExportController | Exportar estado de resultados a CSV |
@@ -112,6 +113,9 @@ app/
 │       ├── PasswordValidationRules.php        # Reglas de validacion de contrasenas
 │       └── ResetUserPassword.php              # Accion para resetear contrasena
 ├── Application/
+│   ├── HumanResources/
+│   │   └── Employees/
+│   │       └── EmployeesQuery.php             # Query layer de empleados (filtros, totales, breakdown por unidad)
 │   └── Supplies/
 │       └── SuppliesQuery.php                  # Query builder con filtros para tabla de supplies
 ├── Domain/
@@ -159,12 +163,15 @@ app/
 │   │   ├── UserController.php                 # CRUD de usuarios con roles y permisos
 │   │   └── Forms/
 │   │       └── UserForm.php                   # Form de usuario con asignacion de rol
-│   └── HumanResources/                        # Modulo de Recursos Humanos (proximamente)
-│       └── Forms/                             # (vacio, listo para implementar)
+│   └── HumanResources/                        # Modulo de Recursos Humanos
+│       ├── EmployeesController.php            # CRUD de empleados con filtros y cards
+│       └── Forms/
+│           └── EmployeeForm.php               # Form de empleado (4 secciones, 21 campos)
 ├── Models/
 │   ├── CashExtraction.php                     # Corte de caja: desglose efectivo/tarjeta por turno
 │   ├── Category.php                           # Categoria de gasto (unidad, tipo, proveedor)
 │   ├── DailySale.php                          # Venta diaria: ventas, metodos de pago, propinas, datos operativos
+│   ├── Employee.php                           # Empleado de RRHH con scopes activo/inactivo y accessor de edad
 │   ├── ExpenseType.php                        # Tipo de gasto (Luz, Renta, etc.)
 │   ├── IncomePeriod.php                       # Ingreso mensual por unidad de negocio
 │   ├── Supply.php                             # Gasto/insumo con estatus de pago
@@ -197,6 +204,7 @@ config/
 database/
 ├── factories/
 │   ├── DailySaleFactory.php                   # Factory para ventas diarias
+│   ├── EmployeeFactory.php                    # Factory para empleados (con states inactive y forUnit)
 │   └── UserFactory.php                        # Factory para usuarios
 ├── migrations/
 │   ├── 0001_01_01_000000_create_users_table.php
@@ -209,7 +217,8 @@ database/
 │   ├── 2025_12_09_..._create_categories_table.php
 │   ├── 2025_12_09_..._create_supplies_table.php
 │   ├── 2026_02_01_..._create_income_periods_table.php
-│   └── 2026_03_04_..._create_daily_sales_table.php
+│   ├── 2026_03_04_..._create_daily_sales_table.php
+│   └── 2026_05_08_..._create_employees_table.php
 └── seeders/
     ├── DatabaseSeeder.php                     # Seeder principal
     └── RolSeeder.php                          # Roles (Super, Admin, User) y permisos
@@ -262,6 +271,7 @@ resources/views/
 │   │   ├── detail-supplies.blade.php          # Modal detalle de gasto
 │   │   ├── expense-type-form.blade.php        # Modal formulario de tipo de gasto
 │   │   ├── form-daily-sales.blade.php         # Modal formulario de venta diaria
+│   │   ├── form-employee.blade.php            # Modal formulario de empleado (4 secciones)
 │   │   ├── form-incomes.blade.php             # Modal formulario de ingresos
 │   │   ├── form-user.blade.php                # Modal formulario de usuario
 │   │   └── notification.blade.php             # Modal de notificacion
@@ -282,7 +292,8 @@ resources/views/
 │   │   └── supplies-controller.blade.php      # Vista de gastos/insumos
 │   ├── users/
 │   │   └── users.blade.php                    # Vista de gestion de usuarios
-│   └── human-resources/                       # Vistas del modulo RRHH (proximamente)
+│   └── human-resources/
+│       └── employees-controller.blade.php     # Vista del listado de empleados
 ├── partials/
 │   ├── head.blade.php                         # Head HTML (meta, scripts, styles)
 │   └── settings-heading.blade.php             # Encabezado de paginas de settings
@@ -307,6 +318,7 @@ tests/
 │   │   └── TwoFactorChallengeTest.php         # Tests de autenticacion 2FA
 │   ├── DailySalesTest.php                     # Tests de ventas diarias
 │   ├── DashboardTest.php                      # Tests del dashboard
+│   ├── EmployeesCrudTest.php                  # Tests del CRUD de empleados (modelo, query, Livewire)
 │   ├── ExampleTest.php                        # Test de ejemplo
 │   └── Settings/
 │       ├── PasswordUpdateTest.php             # Tests de actualizacion de contrasena
@@ -362,7 +374,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.2.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.3.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT
