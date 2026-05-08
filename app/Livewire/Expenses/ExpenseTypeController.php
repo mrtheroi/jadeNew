@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Expenses;
 
 use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
-use App\Livewire\Forms\ExpenseTypeForm;
+use App\Livewire\Expenses\Forms\ExpenseTypeForm;
 use App\Models\ExpenseType;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -68,7 +68,7 @@ class ExpenseTypeController extends Component
             ->orderBy('expense_type_name')
             ->paginate(10);
 
-        return view('livewire.expense-type', [
+        return view('livewire.expenses.expense-type', [
             'expenseTypes' => $expenseTypes,
         ]);
     }

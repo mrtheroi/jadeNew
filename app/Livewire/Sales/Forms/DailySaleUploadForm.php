@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Forms;
+namespace App\Livewire\Sales\Forms;
 
 use App\Domain\BusinessUnit;
 use App\Models\DailySale;

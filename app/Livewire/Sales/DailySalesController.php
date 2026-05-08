@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Sales;
 
 use App\Application\DailySales\DailySalesQuery;
 use App\Domain\BusinessUnit;
 use App\Livewire\Concerns\HasSearchFilter;
-use App\Livewire\Forms\DailySaleUploadForm;
-use App\Livewire\Forms\ReconciliationForm;
+use App\Livewire\Sales\Forms\DailySaleUploadForm;
+use App\Livewire\Sales\Forms\ReconciliationForm;
 use App\Models\DailySale;
 use App\Services\DailySaleExtractionService;
 use Livewire\Attributes\On;
@@ -227,7 +227,7 @@ class DailySalesController extends Component
         $sales = (clone $query)->with('user')->orderByDesc('operation_date')->orderBy('turno')->paginate(15);
         $totals = $dailySalesQuery->totals($query);
 
-        return view('livewire.daily-sales-controller', [
+        return view('livewire.sales.daily-sales-controller', [
             'sales' => $sales,
             'totals' => $totals,
             'from_date' => $from,

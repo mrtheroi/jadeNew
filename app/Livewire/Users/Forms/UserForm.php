@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Forms;
+namespace App\Livewire\Users\Forms;
 
 use App\Models\User;
 use Illuminate\Validation\Rule as VRule;

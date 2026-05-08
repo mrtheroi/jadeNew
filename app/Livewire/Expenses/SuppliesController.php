@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Expenses;
 
 use App\Application\Helpers\PeriodRange;
 use App\Application\Supplies\SuppliesQuery;
 use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
-use App\Livewire\Forms\SupplyForm;
+use App\Livewire\Expenses\Forms\SupplyForm;
 use App\Models\Supply;
 use App\Services\Reports\ExpensesReportService;
 use Carbon\Carbon;
@@ -374,7 +374,7 @@ class SuppliesController extends Component
 
         $supplies = $query->base($tableFilters)->paginate(10);
 
-        return view('livewire.supplies-controller', [
+        return view('livewire.expenses.supplies-controller', [
             'supplies' => $supplies,
             'totalGeneral' => $query->totalGeneral($tableFilters),
             'totalsByType' => $query->totalsByExpenseType($tableFilters),

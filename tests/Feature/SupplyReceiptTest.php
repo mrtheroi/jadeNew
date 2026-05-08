@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\SuppliesController;
+use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
 use App\Models\Supply;
 use App\Models\User;

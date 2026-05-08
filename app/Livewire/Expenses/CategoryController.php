@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Expenses;
 
 use App\Domain\BusinessUnit;
 use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
-use App\Livewire\Forms\CategoryForm;
+use App\Livewire\Expenses\Forms\CategoryForm;
 use App\Models\Category;
 use App\Models\ExpenseType;
 use Livewire\Attributes\On;
@@ -76,6 +76,6 @@ class CategoryController extends Component
 
         $businessUnits = BusinessUnit::cases();
 
-        return view('livewire.category-controller', compact('categories', 'expenseType', 'businessUnits'));
+        return view('livewire.expenses.category-controller', compact('categories', 'expenseType', 'businessUnits'));
     }
 }

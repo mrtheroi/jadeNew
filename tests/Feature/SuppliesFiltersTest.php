@@ -1,7 +1,7 @@
 <?php
 
 use App\Application\Supplies\SuppliesQuery;
-use App\Livewire\SuppliesController;
+use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
 use App\Models\ExpenseType;
 use App\Models\Supply;

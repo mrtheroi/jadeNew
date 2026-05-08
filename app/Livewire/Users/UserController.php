@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Users;
 
 use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
-use App\Livewire\Forms\UserForm;
+use App\Livewire\Users\Forms\UserForm;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\On;
@@ -133,6 +133,6 @@ class UserController extends Component
 
         $roles = Role::query()->orderBy('name')->get();
 
-        return view('livewire.users', compact('users', 'roles'));
+        return view('livewire.users.users', compact('users', 'roles'));
     }
 }

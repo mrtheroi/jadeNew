@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire;
+namespace App\Livewire\Sales;
 
 use App\Services\DashboardService;
 use Livewire\Attributes\Rule;
@@ -131,6 +131,6 @@ class SalesDashboard extends Component
 
         $this->dispatch('chart-data-updated', data: $chartData);
 
-        return view('livewire.sales-dashboard', $chartData);
+        return view('livewire.sales.sales-dashboard', $chartData);
     }
 }

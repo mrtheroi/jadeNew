@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Forms;
+namespace App\Livewire\Expenses\Forms;
 
 use App\Models\Supply;
 use Livewire\Attributes\Rule;

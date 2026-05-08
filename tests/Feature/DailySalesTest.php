@@ -1,10 +1,12 @@
 <?php
 
-use App\Livewire\DailySalesController;
+use App\Livewire\Sales\DailySalesController;
 use App\Models\DailySale;
 use App\Models\User;
 use App\Services\DailySaleExtractionMapper;
 use App\Services\DailySaleExtractionService;
+use App\Services\LlamaIndexService;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 
@@ -27,6 +29,7 @@ test('ventas page shows daily sales records', function () {
         'operation_date' => now()->format('Y-m-d'),
         'turno' => 1,
         'total' => 5000.00,
+        'status' => 'completed',
     ]);
 
     Livewire::actingAs($user)
@@ -42,6 +45,7 @@ test('ventas page filters by business unit', function () {
         'operation_date' => now()->format('Y-m-d'),
         'turno' => 1,
         'total' => 1000.00,
+        'status' => 'completed',
     ]);
 
     DailySale::factory()->create([
@@ -49,11 +53,12 @@ test('ventas page filters by business unit', function () {
         'operation_date' => now()->format('Y-m-d'),
         'turno' => 1,
         'total' => 2000.00,
+        'status' => 'completed',
     ]);
 
     Livewire::actingAs($user)
         ->test(DailySalesController::class)
-        ->set('filterBusinessUnit', 'Jade')
+        ->set('business_unit', 'Jade')
         ->assertSee('1,000.00')
         ->assertDontSee('2,000.00');
 });
@@ -92,10 +97,10 @@ test('upload pdf creates daily sale with processing status and calls extraction 
 
     Livewire::actingAs($user)
         ->test(DailySalesController::class)
-        ->set('business_unit', 'Jade')
-        ->set('operation_date', now()->format('Y-m-d'))
-        ->set('turno', 1)
-        ->set('file', $file)
+        ->set('form.business_unit', 'Jade')
+        ->set('form.operation_date', now()->format('Y-m-d'))
+        ->set('form.turno', 1)
+        ->set('form.file', $file)
         ->call('uploadPdf');
 
     $sale = DailySale::where('business_unit', 'Jade')
@@ -124,12 +129,12 @@ test('upload pdf rejects duplicate completed record', function () {
 
     Livewire::actingAs($user)
         ->test(DailySalesController::class)
-        ->set('business_unit', 'Jade')
-        ->set('operation_date', now()->format('Y-m-d'))
-        ->set('turno', 1)
-        ->set('file', $file)
+        ->set('form.business_unit', 'Jade')
+        ->set('form.operation_date', now()->format('Y-m-d'))
+        ->set('form.turno', 1)
+        ->set('form.file', $file)
         ->call('uploadPdf')
-        ->assertHasErrors('file');
+        ->assertHasErrors('form.file');
 });
 
 test('upload pdf allows retry for failed record', function () {
@@ -150,10 +155,10 @@ test('upload pdf allows retry for failed record', function () {
 
     Livewire::actingAs($user)
         ->test(DailySalesController::class)
-        ->set('business_unit', 'Jade')
-        ->set('operation_date', $date)
-        ->set('turno', 1)
-        ->set('file', $file)
+        ->set('form.business_unit', 'Jade')
+        ->set('form.operation_date', $date)
+        ->set('form.turno', 1)
+        ->set('form.file', $file)
         ->call('uploadPdf');
 
     expect(DailySale::find($failed->id))->toBeNull();
@@ -231,12 +236,12 @@ test('webhook extract.success updates daily sale to completed', function () {
         ],
     ];
 
-    $this->mock(\App\Services\LlamaIndexService::class, function ($mock) use ($mockResult) {
+    $this->mock(LlamaIndexService::class, function ($mock) use ($mockResult) {
         $mock->shouldReceive('getExtractJobResult')
             ->with('job_test123')
             ->once()
-            ->andReturn(new \Illuminate\Http\Client\Response(
-                new \GuzzleHttp\Psr7\Response(200, [], json_encode(['data' => $mockResult]))
+            ->andReturn(new Illuminate\Http\Client\Response(
+                new Response(200, [], json_encode(['data' => $mockResult]))
             ));
     });
 
@@ -353,6 +358,37 @@ test('extraction mapper parses v1 api json correctly', function () {
         ->and($result['efectivo_monto'])->toBe(14795.0)
         ->and($result['credito_monto'])->toBe(20151.0)
         ->and($result['period_start'])->not->toBeNull();
+});
+
+test('extraction mapper sums planta alta into totals', function () {
+    $mapper = new DailySaleExtractionMapper;
+
+    $data = [
+        'sales_by_area' => [
+            ['area_name' => 'PLANTA ALTA', 'food_sales' => 5000, 'beverage_sales' => 2000, 'other_sales' => 500, 'subtotal' => 7500, 'tax' => 600, 'total' => 8100, 'number_of_people' => 30, 'number_of_accounts' => 15, 'average_per_person' => 270, 'product_count' => 20],
+            ['area_name' => 'COMEDOR', 'food_sales' => 29566.62, 'beverage_sales' => 14922.77, 'other_sales' => 5998.14, 'subtotal' => 50487.55, 'tax' => 4039, 'total' => 54526.56, 'number_of_people' => 225, 'number_of_accounts' => 606, 'average_per_person' => 224.38, 'product_count' => 127],
+        ],
+        'payment_summary' => [
+            ['payment_method' => 'EFECTIVO', 'amount' => 14795, 'tip' => 1195],
+        ],
+        'report_period' => [
+            'start_datetime' => '17/03/2026 07:00:00 AM',
+            'end_datetime' => '17/03/2026 03:00:00 PM',
+        ],
+    ];
+
+    $result = $mapper->map($data);
+
+    expect($result['alimentos'])->toEqualWithDelta(34566.62, 0.01)
+        ->and($result['bebidas'])->toEqualWithDelta(16922.77, 0.01)
+        ->and($result['otros'])->toEqualWithDelta(6498.14, 0.01)
+        ->and($result['subtotal'])->toEqualWithDelta(57987.55, 0.01)
+        ->and($result['iva'])->toEqualWithDelta(4639.0, 0.01)
+        ->and($result['total'])->toEqualWithDelta(62626.56, 0.01)
+        ->and($result['numero_personas'])->toBe(255)
+        ->and($result['numero_cuentas'])->toBe(621)
+        ->and($result['promedio_por_persona'])->toEqualWithDelta(245.59, 0.01)
+        ->and($result['cantidad_productos'])->toBe(147);
 });
 
 test('unique constraint allows same date different turno', function () {

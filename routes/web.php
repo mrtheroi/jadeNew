@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\DashboardExportController;
-use App\Livewire\CategoryController;
-use App\Livewire\DailySalesController;
-use App\Livewire\ExpenseTypeController;
-use App\Livewire\SalesDashboard;
-use App\Livewire\SuppliesController;
-use App\Livewire\UserController;
+use App\Livewire\Expenses\CategoryController;
+use App\Livewire\Expenses\ExpenseTypeController;
+use App\Livewire\Expenses\SuppliesController;
+use App\Livewire\Sales\DailySalesController;
+use App\Livewire\Sales\SalesDashboard;
+use App\Livewire\Users\UserController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
