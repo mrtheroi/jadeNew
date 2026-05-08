@@ -1,4 +1,4 @@
-# Jade v1.2.0
+# Jade v1.2.1
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
@@ -135,14 +135,32 @@ app/
 ├── Livewire/
 │   ├── Actions/
 │   │   └── Logout.php                         # Accion de cierre de sesion
-│   ├── CategoryController.php                 # CRUD de categorias de gasto
+│   ├── Concerns/
+│   │   ├── HasModalCrud.php                   # Trait de modal CRUD (open, close, deleteId)
+│   │   └── HasSearchFilter.php                # Trait de filtro de busqueda con URL sync
 │   ├── ConfirmModal.php                       # Modal reutilizable de confirmacion
-│   ├── DailySalesController.php               # Listado, importacion y gestion de ventas diarias
-│   ├── ExpenseTypeController.php              # CRUD de tipos de gasto
 │   ├── Notification.php                       # Componente de notificaciones
-│   ├── SalesDashboard.php                     # Dashboard principal: KPIs, graficas, filtros por periodo
-│   ├── SuppliesController.php                 # CRUD de gastos/insumos con exportacion
-│   └── UserController.php                     # CRUD de usuarios con roles y permisos
+│   ├── Sales/
+│   │   ├── DailySalesController.php           # Listado, importacion y gestion de ventas diarias
+│   │   ├── SalesDashboard.php                 # Dashboard principal: KPIs, graficas, filtros por periodo
+│   │   └── Forms/
+│   │       ├── DailySaleUploadForm.php        # Form de upload de PDF de venta diaria
+│   │       ├── IncomeForm.php                 # Form de ingresos (sin uso, pendiente de revision)
+│   │       └── ReconciliationForm.php         # Form de reconciliacion de venta
+│   ├── Expenses/
+│   │   ├── CategoryController.php             # CRUD de categorias de gasto
+│   │   ├── ExpenseTypeController.php          # CRUD de tipos de gasto
+│   │   ├── SuppliesController.php             # CRUD de gastos/insumos con exportacion
+│   │   └── Forms/
+│   │       ├── CategoryForm.php               # Form de categoria
+│   │       ├── ExpenseTypeForm.php            # Form de tipo de gasto
+│   │       └── SupplyForm.php                 # Form de gasto/insumo
+│   ├── Users/
+│   │   ├── UserController.php                 # CRUD de usuarios con roles y permisos
+│   │   └── Forms/
+│   │       └── UserForm.php                   # Form de usuario con asignacion de rol
+│   └── HumanResources/                        # Modulo de Recursos Humanos (proximamente)
+│       └── Forms/                             # (vacio, listo para implementar)
 ├── Models/
 │   ├── CashExtraction.php                     # Corte de caja: desglose efectivo/tarjeta por turno
 │   ├── Category.php                           # Categoria de gasto (unidad, tipo, proveedor)
@@ -236,9 +254,6 @@ resources/views/
 │   │   ├── reset-password.blade.php           # Resetear contrasena
 │   │   ├── two-factor-challenge.blade.php     # Desafio 2FA
 │   │   └── verify-email.blade.php             # Verificacion de email
-│   ├── category-controller.blade.php          # Vista de categorias
-│   ├── daily-sales-controller.blade.php       # Vista de ventas diarias
-│   ├── expense-type.blade.php                 # Vista de tipos de gasto
 │   ├── modals/
 │   │   ├── cash.blade.php                     # Modal de corte de caja
 │   │   ├── category-form.blade.php            # Modal formulario de categoria
@@ -250,7 +265,6 @@ resources/views/
 │   │   ├── form-incomes.blade.php             # Modal formulario de ingresos
 │   │   ├── form-user.blade.php                # Modal formulario de usuario
 │   │   └── notification.blade.php             # Modal de notificacion
-│   ├── sales-dashboard.blade.php              # Vista del dashboard de ventas
 │   ├── settings/
 │   │   ├── appearance.blade.php               # Configuracion de apariencia
 │   │   ├── delete-user-form.blade.php         # Formulario para eliminar cuenta
@@ -259,8 +273,16 @@ resources/views/
 │   │   ├── two-factor.blade.php               # Configuracion 2FA
 │   │   └── two-factor/
 │   │       └── recovery-codes.blade.php       # Codigos de recuperacion 2FA
-│   ├── supplies-controller.blade.php          # Vista de gastos/insumos
-│   └── users.blade.php                        # Vista de gestion de usuarios
+│   ├── sales/
+│   │   ├── daily-sales-controller.blade.php   # Vista de ventas diarias
+│   │   └── sales-dashboard.blade.php          # Vista del dashboard de ventas
+│   ├── expenses/
+│   │   ├── category-controller.blade.php      # Vista de categorias
+│   │   ├── expense-type.blade.php             # Vista de tipos de gasto
+│   │   └── supplies-controller.blade.php      # Vista de gastos/insumos
+│   ├── users/
+│   │   └── users.blade.php                    # Vista de gestion de usuarios
+│   └── human-resources/                       # Vistas del modulo RRHH (proximamente)
 ├── partials/
 │   ├── head.blade.php                         # Head HTML (meta, scripts, styles)
 │   └── settings-heading.blade.php             # Encabezado de paginas de settings
@@ -340,7 +362,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.1.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.2.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT

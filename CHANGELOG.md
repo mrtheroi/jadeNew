@@ -5,6 +5,23 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.2.1] - 2026-05-08
+
+### Cambiado
+
+- **Reorganización modular de Livewire**: componentes y vistas Blade reagrupados en subcarpetas por dominio para soportar el crecimiento del proyecto, especialmente la incorporación del próximo módulo de Recursos Humanos
+  - `app/Livewire/Sales/` — `SalesDashboard`, `DailySalesController` y sus Forms (`DailySaleUploadForm`, `IncomeForm`, `ReconciliationForm`)
+  - `app/Livewire/Expenses/` — `SuppliesController`, `CategoryController`, `ExpenseTypeController` y sus Forms (`SupplyForm`, `CategoryForm`, `ExpenseTypeForm`)
+  - `app/Livewire/Users/` — `UserController` y `UserForm`
+  - `app/Livewire/HumanResources/` — estructura vacía con `.gitkeep`, lista para el próximo módulo
+  - Vistas Blade espejadas en `resources/views/livewire/{sales,expenses,users,human-resources}/`
+- **Llamadas a `view()` explícitas**: cada controller referencia su vista con el path completo del nuevo namespace (`view('livewire.{dominio}.{nombre}', ...)`) sin depender de la auto-resolución de Livewire
+- **URLs públicas y nombres de rutas inalterados**: el refactor es 100% interno — sidebar, bookmarks y comportamiento del usuario final quedan intactos
+- **Carpetas shared en raíz**: `app/Livewire/Actions/`, `app/Livewire/Concerns/`, `ConfirmModal.php` y `Notification.php` se mantienen sin namespace de dominio porque son utilitarios genéricos compartidos por todos los módulos
+- **Identificado código muerto**: `IncomeForm` se movió a `app/Livewire/Sales/Forms/` pero no es usado por ningún componente; queda pendiente de revisión y posible eliminación en una versión futura
+
+---
+
 ## [1.2.0] - 2026-05-08
 
 ### Agregado
