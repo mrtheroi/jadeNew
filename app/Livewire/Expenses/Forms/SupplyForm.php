@@ -22,7 +22,7 @@ class SupplyForm extends Form
     #[Rule('nullable|in:efectivo,transferencia,tarjeta_credito,tarjeta_debito,cheque,otro')]
     public ?string $payment_type = null;
 
-    #[Rule('nullable|date')]
+    #[Rule('required|date')]
     public ?string $payment_date = null;
 
     #[Rule('required|in:pendiente,pagado,cancelado')]

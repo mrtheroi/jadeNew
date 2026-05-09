@@ -5,6 +5,27 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.5.0] - 2026-05-08
+
+### Agregado
+
+- **Generación retroactiva de Órdenes de Compra**: el modal de generación ahora incluye un selector de fecha (`<input type="date">`) que permite consolidar compras de cualquier día pasado, no sólo del día actual. Por defecto la fecha es hoy y se puede modificar libremente; el `max` está topado al día de hoy para evitar OCs futuras
+  - **Preview reactivo**: al cambiar la fecha en el modal, la cantidad de compras y el monto total se recalculan automáticamente vía `wire:model.live` y el método `updatedOcPreviewDate()` del `SuppliesController`
+  - **Botón confirmar deshabilitado**: si para la fecha elegida no hay compras elegibles (sin OC asignada), el botón «Confirmar y generar OC» queda deshabilitado y se muestra un aviso indicando probar otra fecha
+  - **Modal abre siempre**: ya no se rechaza la apertura del modal cuando hoy no tiene compras elegibles; se abre igual para que el usuario pueda explorar otras fechas
+
+### Cambiado
+
+- **Botón «Generar OC»**: el botón en la vista de Supplies pasó de «Generar OC del día» a «Generar OC» para reflejar que ya no está atado al día actual
+- **PDF de Orden de Compra**: la línea de firma «Recibió / Aprobó» ya no muestra «Contabilidad» hardcodeado. La etiqueta queda limpia para firma manuscrita, evitando comunicar un flujo de aprobación que el sistema no implementa
+
+### Corregido
+
+- **Bug de selector de unidad en Supplies**: el `<select>` de unidad de negocio no tenía opción vacía y `business_unit` arrancaba en `''`. Esto provocaba que el navegador mostrara visualmente «Jade» pero el modelo en el servidor siguiera vacío, ocultando el botón «Generar OC» hasta cambiar a otra unidad y volver. El `mount()` ahora inicializa `business_unit` al primer caso del enum (`BusinessUnit::cases()[0]->value`), eliminando el estado fantasma. `resetFilters()` también respeta este default
+- **Validación de `payment_date` en alta de compras**: la regla pasó de `nullable|date` a `required|date` en `SupplyForm`. En el mundo nuevo de OCs, una compra sin fecha jamás puede entrar en una OC (`eligibleSupplies()` filtra con `whereDate('payment_date')`), por lo que el dato faltante quedaba en el limbo. Ahora se exige al guardar
+
+---
+
 ## [1.4.1] - 2026-05-08
 
 ### Corregido

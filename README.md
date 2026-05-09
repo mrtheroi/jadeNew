@@ -1,4 +1,4 @@
-# Jade v1.4.1
+# Jade v1.5.0
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
@@ -190,7 +190,7 @@ app/
 └── Services/
     ├── LlamaIndexService.php                  # Cliente HTTP para LlamaIndex Cloud API
     ├── DailySaleExtractionMapper.php          # Mapeo de JSON LlamaIndex a campos de daily_sales
-    ├── PurchaseOrderGenerator.php             # Servicio: genera OC del dia, anula OC liberando supplies
+    ├── PurchaseOrderGenerator.php             # Servicio: genera OC para un dia (presente o pasado), anula OC liberando supplies
     └── Reports/
         └── ExpensesReportService.php          # Logica de generacion de reportes de gastos (Excel/PDF)
 
@@ -389,7 +389,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.4.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.5.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT

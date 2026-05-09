@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\BusinessUnit;
 use App\Livewire\Expenses\PurchaseOrdersController;
 use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
@@ -211,6 +212,107 @@ test('previewGeneratePurchaseOrder requires a business_unit', function () {
         ->set('business_unit', '')
         ->call('previewGeneratePurchaseOrder')
         ->assertSet('showGenerateOcModal', false);
+});
+
+test('SuppliesController initializes business_unit to first enum case on mount', function () {
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->assertSet('business_unit', BusinessUnit::cases()[0]->value);
+});
+
+test('previewGeneratePurchaseOrder defaults preview date to today', function () {
+    Supply::factory()->create([
+        'category_id' => $this->categoryJade->id,
+        'amount' => 800,
+        'payment_date' => Carbon::today(),
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('business_unit', 'Jade')
+        ->call('previewGeneratePurchaseOrder')
+        ->assertSet('showGenerateOcModal', true)
+        ->assertSet('ocPreviewDate', Carbon::today()->toDateString())
+        ->assertSet('ocPreviewCount', 1)
+        ->assertSet('ocPreviewTotal', 800.0);
+});
+
+test('previewGeneratePurchaseOrder opens modal even when today has no eligible supplies', function () {
+    // sin ningún supply hoy — el modal debe abrirse igual para que el usuario elija otra fecha
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('business_unit', 'Jade')
+        ->call('previewGeneratePurchaseOrder')
+        ->assertSet('showGenerateOcModal', true)
+        ->assertSet('ocPreviewCount', 0)
+        ->assertSet('ocPreviewTotal', 0.0);
+});
+
+test('changing ocPreviewDate refreshes count and total reactively', function () {
+    $today = Carbon::today();
+    $threeDaysAgo = Carbon::today()->subDays(3);
+
+    // 2 compras hace 3 días, sin OC
+    Supply::factory()->count(2)->create([
+        'category_id' => $this->categoryJade->id,
+        'amount' => 450,
+        'payment_date' => $threeDaysAgo,
+    ]);
+    // 1 compra hoy, sin OC
+    Supply::factory()->create([
+        'category_id' => $this->categoryJade->id,
+        'amount' => 100,
+        'payment_date' => $today,
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('business_unit', 'Jade')
+        ->call('previewGeneratePurchaseOrder')
+        ->assertSet('ocPreviewDate', $today->toDateString())
+        ->assertSet('ocPreviewCount', 1)
+        ->assertSet('ocPreviewTotal', 100.0)
+        ->set('ocPreviewDate', $threeDaysAgo->toDateString())
+        ->assertSet('ocPreviewCount', 2)
+        ->assertSet('ocPreviewTotal', 900.0);
+});
+
+test('confirmGeneratePurchaseOrder creates OC for past date when user changes ocPreviewDate', function () {
+    $fiveDaysAgo = Carbon::today()->subDays(5);
+
+    Supply::factory()->count(3)->create([
+        'category_id' => $this->categoryJade->id,
+        'amount' => 200,
+        'payment_date' => $fiveDaysAgo,
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('business_unit', 'Jade')
+        ->call('previewGeneratePurchaseOrder')
+        ->set('ocPreviewDate', $fiveDaysAgo->toDateString())
+        ->call('confirmGeneratePurchaseOrder')
+        ->assertSet('showGenerateOcModal', false);
+
+    $oc = PurchaseOrder::where('business_unit', 'Jade')->first();
+
+    expect($oc)->not->toBeNull();
+    expect($oc->oc_date->toDateString())->toBe($fiveDaysAgo->toDateString());
+    expect($oc->total_items)->toBe(3);
+    expect((float) $oc->total_amount)->toBe(600.0);
+});
+
+test('SupplyForm requires payment_date when saving', function () {
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('form.category_id', (string) $this->categoryJade->id)
+        ->set('form.amount', '100')
+        ->set('form.payment_date', null)
+        ->set('form.status', 'pendiente')
+        ->call('save')
+        ->assertHasErrors(['form.payment_date' => 'required']);
+
+    expect(Supply::count())->toBe(0);
 });
 
 test('previewGeneratePurchaseOrder shows preview when there are eligible supplies', function () {

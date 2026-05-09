@@ -19,17 +19,17 @@
 
             {{-- ACTIONS --}}
             <div class="flex flex-wrap items-center gap-2">
-                {{-- Generar OC del día --}}
+                {{-- Generar OC --}}
                 @if($business_unit)
                     <button
                         type="button"
                         wire:click="previewGeneratePurchaseOrder"
                         class="inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition
                                dark:border-indigo-500/30 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50"
-                        title="Genera una OC consolidando las compras de hoy de la unidad activa"
+                        title="Generá una OC consolidando las compras de un día específico de la unidad activa"
                     >
                         <i class="fa-thin fa-file-invoice mr-2"></i>
-                        Generar OC del día
+                        Generar OC
                     </button>
                 @endif
 
@@ -846,20 +846,20 @@
     @endif
 
 
-    {{-- MODAL: GENERAR OC DEL DÍA --}}
+    {{-- MODAL: GENERAR OC --}}
     @if($showGenerateOcModal)
         <x-modal wire:model="showGenerateOcModal" maxWidth="lg">
             <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
                     <i class="fa-thin fa-file-invoice mr-2 text-indigo-600 dark:text-indigo-300"></i>
-                    Generar Orden de Compra del día
+                    Generar Orden de Compra
                 </h3>
             </div>
 
             <div class="p-4 space-y-4">
                 <div class="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 text-sm dark:border-indigo-500/20 dark:bg-indigo-900/10">
                     <p class="text-gray-700 dark:text-gray-200">
-                        Vas a generar una OC consolidando las compras de hoy de la unidad <strong>{{ $business_unit }}</strong>.
+                        Elegí el día a consolidar para la unidad <strong>{{ $business_unit }}</strong>. Se incluirán todas las compras de ese día que aún no estén en una OC.
                     </p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         Una vez generada, la OC se cierra automáticamente y las compras asociadas no se podrán editar ni eliminar
@@ -867,20 +867,47 @@
                     </p>
                 </div>
 
+                <div>
+                    <label for="ocPreviewDate" class="block text-xs font-medium text-gray-700 dark:text-gray-200">Fecha de la OC</label>
+                    <input
+                        id="ocPreviewDate"
+                        type="date"
+                        wire:model.live="ocPreviewDate"
+                        max="{{ now()->toDateString() }}"
+                        class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                    />
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                        Por defecto es hoy. Cambiá la fecha para generar una OC retroactiva de un día anterior.
+                    </p>
+                </div>
+
                 <div class="grid grid-cols-3 gap-3 text-sm">
                     <div class="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800/40">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Fecha</div>
-                        <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $ocPreviewDate }}</div>
+                        <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $ocPreviewDate ?? '—' }}</div>
                     </div>
                     <div class="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800/40">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Compras</div>
-                        <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $ocPreviewCount }}</div>
+                        <div class="mt-1 font-semibold text-gray-900 dark:text-white" wire:loading.class="opacity-50" wire:target="ocPreviewDate">
+                            {{ $ocPreviewCount }}
+                        </div>
                     </div>
                     <div class="rounded-lg bg-gray-50 p-3 text-center dark:bg-gray-800/40">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</div>
-                        <div class="mt-1 font-semibold text-emerald-700 dark:text-emerald-300">$ {{ number_format($ocPreviewTotal, 2) }}</div>
+                        <div class="mt-1 font-semibold text-emerald-700 dark:text-emerald-300" wire:loading.class="opacity-50" wire:target="ocPreviewDate">
+                            $ {{ number_format($ocPreviewTotal, 2) }}
+                        </div>
                     </div>
                 </div>
+
+                @if($ocPreviewCount === 0)
+                    <div class="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-900/10 dark:text-amber-200">
+                        <i class="fa-thin fa-triangle-exclamation mr-1"></i>
+                        No hay compras sin OC para esta fecha y unidad. Probá con otro día o cargá compras nuevas.
+                    </div>
+                @endif
             </div>
 
             <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3 dark:border-white/10">
@@ -896,7 +923,8 @@
                     type="button"
                     wire:click="confirmGeneratePurchaseOrder"
                     wire:loading.attr="disabled"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition disabled:opacity-50
+                    @disabled($ocPreviewCount === 0)
+                    class="rounded-md bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed
                            dark:bg-indigo-500 dark:hover:bg-indigo-400"
                 >
                     <span wire:loading.remove wire:target="confirmGeneratePurchaseOrder">Confirmar y generar OC</span>

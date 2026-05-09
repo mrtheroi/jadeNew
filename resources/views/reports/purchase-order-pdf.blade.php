@@ -137,7 +137,7 @@
         <div class="signature-cell">
             <div class="signature-line"></div>
             <div>Recibió / Aprobó</div>
-            <div class="meta">Contabilidad</div>
+            <div class="meta">&nbsp;</div>
         </div>
     </div>
 

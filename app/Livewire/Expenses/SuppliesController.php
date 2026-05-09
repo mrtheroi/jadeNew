@@ -4,6 +4,7 @@ namespace App\Livewire\Expenses;
 
 use App\Application\Helpers\PeriodRange;
 use App\Application\Supplies\SuppliesQuery;
+use App\Domain\BusinessUnit;
 use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
 use App\Livewire\Expenses\Forms\SupplyForm;
@@ -71,6 +72,10 @@ class SuppliesController extends Component
     public function mount(): void
     {
         $this->period_key = now()->format('Y-m');
+
+        if ($this->business_unit === '') {
+            $this->business_unit = BusinessUnit::cases()[0]->value;
+        }
     }
 
     public function updatedBusinessUnit(): void
@@ -320,30 +325,41 @@ class SuppliesController extends Component
     }
 
     /**
-     * Abre el modal de preview con las compras elegibles del día y unidad activos.
-     * Requiere que el usuario tenga una unidad seleccionada (sino no se sabe qué OC generar).
+     * Abre el modal de preview con la fecha de hoy por defecto.
+     * El usuario puede cambiar la fecha dentro del modal para generar OCs de días pasados.
      */
-    public function previewGeneratePurchaseOrder(PurchaseOrderGenerator $generator): void
+    public function previewGeneratePurchaseOrder(): void
     {
         if (! $this->business_unit) {
-            $this->dispatch('notify', message: 'Seleccioná una unidad de negocio antes de generar la OC del día.', type: 'warning');
+            $this->dispatch('notify', message: 'Seleccioná una unidad de negocio antes de generar la OC.', type: 'warning');
 
             return;
         }
 
-        $date = Carbon::today();
-        $eligible = $generator->eligibleSupplies($this->business_unit, $date);
+        $this->ocPreviewDate = Carbon::today()->toDateString();
+        $this->refreshOcPreview();
+        $this->showGenerateOcModal = true;
+    }
 
-        if ($eligible->isEmpty()) {
-            $this->dispatch('notify', message: 'No hay compras del día sin OC para esta unidad.', type: 'warning');
+    public function updatedOcPreviewDate(): void
+    {
+        $this->refreshOcPreview();
+    }
+
+    private function refreshOcPreview(): void
+    {
+        if (! $this->business_unit || ! $this->ocPreviewDate) {
+            $this->ocPreviewCount = 0;
+            $this->ocPreviewTotal = 0.0;
 
             return;
         }
 
-        $this->ocPreviewDate = $date->toDateString();
+        $eligible = app(PurchaseOrderGenerator::class)
+            ->eligibleSupplies($this->business_unit, Carbon::parse($this->ocPreviewDate));
+
         $this->ocPreviewCount = $eligible->count();
         $this->ocPreviewTotal = (float) $eligible->sum('amount');
-        $this->showGenerateOcModal = true;
     }
 
     public function confirmGeneratePurchaseOrder(PurchaseOrderGenerator $generator): void
@@ -380,7 +396,7 @@ class SuppliesController extends Component
     public function resetFilters(): void
     {
         $this->search = '';
-        $this->business_unit = '';
+        $this->business_unit = BusinessUnit::cases()[0]->value;
         $this->expense_type_id = '';
         $this->category_id = '';
         $this->period_key = now()->format('Y-m');

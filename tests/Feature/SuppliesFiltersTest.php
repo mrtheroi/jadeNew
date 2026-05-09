@@ -1,6 +1,7 @@
 <?php
 
 use App\Application\Supplies\SuppliesQuery;
+use App\Domain\BusinessUnit;
 use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
 use App\Models\ExpenseType;
@@ -242,12 +243,12 @@ test('resetFilters clears all filters', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->set('search', 'CHEDRAUI')
-        ->set('business_unit', 'Jade')
+        ->set('business_unit', 'KIN')
         ->set('expense_type_id', (string) $this->typeAlimentos->id)
         ->set('category_id', (string) $this->frutas->id)
         ->call('resetFilters')
         ->assertSet('search', '')
-        ->assertSet('business_unit', '')
+        ->assertSet('business_unit', BusinessUnit::cases()[0]->value)
         ->assertSet('expense_type_id', '')
         ->assertSet('category_id', '')
         ->assertSet('period_key', now()->format('Y-m'));
