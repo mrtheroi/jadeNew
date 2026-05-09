@@ -74,7 +74,7 @@ class EmployeeForm extends Form
             'nationality' => ['required', 'string', 'max:100'],
             'children_count' => ['required', 'integer', 'min:0', 'max:99'],
             'address' => ['nullable', 'string', 'max:500'],
-            'business_unit' => ['required', VRule::in(['Jade', 'Fuego Ambar', 'KIN'])],
+            'business_unit' => ['required', VRule::in(['Jade', 'Jade Orgánico', 'KIN'])],
             'department' => ['nullable', 'string', 'max:100'],
             'manager_name' => ['nullable', 'string', 'max:100'],
             'hired_at' => ['nullable', 'date'],

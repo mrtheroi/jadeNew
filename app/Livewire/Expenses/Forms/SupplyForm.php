@@ -10,7 +10,7 @@ class SupplyForm extends Form
 {
     public ?int $supplyId = null;
 
-    #[Rule('required|in:Jade,Fuego Ambar,KIN')]
+    #[Rule('required|in:Jade,Jade Orgánico,KIN')]
     public string $business_unit = '';
 
     #[Rule('required|exists:categories,id')]

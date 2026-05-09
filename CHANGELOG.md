@@ -5,6 +5,23 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.6.1] - 2026-05-09
+
+### Cambiado
+
+- **Renombre de unidad de negocio «Fuego Ambar» → «Jade Orgánico»**: la unidad cambia de nombre a pedido del negocio. El cambio aplica de extremo a extremo:
+  - **Enum `App\Domain\BusinessUnit`**: el case `FuegoAmbar` pasa a `JadeOrganico` y el `value` de `'Fuego Ambar'` a `'Jade Orgánico'` (con tilde — el case PHP no la lleva por restricción del lenguaje, pero el valor visible y persistido sí)
+  - **Paleta del badge**: el badge de la unidad cambia de la familia `amber` a `lime` para reflejar el nuevo nombre y mantenerse claramente distinguible del Jade actual (que usa `emerald`)
+  - **Validaciones**: `SupplyForm` y `EmployeeForm` ahora validan `in:Jade,Jade Orgánico,KIN`. Cualquier integración o test que persistiera literalmente `'Fuego Ambar'` debe migrarse al nuevo valor
+  - **Vista de Ingresos**: el `<option>` del modal de Income usa el nuevo label
+  - **Factories**: `CategoryFactory`, `EmployeeFactory` y `PurchaseOrderFactory` generan registros con el valor nuevo
+
+### Migración de datos
+
+- **Migración reversible** `2026_05_09_145115_rename_fuego_ambar_to_jade_organico`: hace `UPDATE business_unit` de `'Fuego Ambar'` → `'Jade Orgánico'` en las cinco tablas que persisten la unidad (`categories`, `income_periods`, `employees`, `purchase_orders`, `daily_sales`) dentro de una transacción. El `down()` revierte el rename. Las OCs existentes con `oc_number` del estilo `OC-FuegoAmbar-…` quedan inmutables por la convención del proyecto sobre OCs (los nuevos OCs se generarán con slug `OC-JadeOrgánico-…`)
+
+---
+
 ## [1.6.0] - 2026-05-09
 
 ### Agregado

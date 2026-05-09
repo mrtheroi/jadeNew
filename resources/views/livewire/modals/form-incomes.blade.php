@@ -36,7 +36,7 @@
                         >
                             <option value="">Selecciona una unidad</option>
                             <option value="Jade">Jade</option>
-                            <option value="Fuego Ambar">Fuego Ambar</option>
+                            <option value="Jade Orgánico">Jade Orgánico</option>
                             <option value="KIN">KIN</option>
                         </select>
 

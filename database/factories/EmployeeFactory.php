@@ -25,7 +25,7 @@ class EmployeeFactory extends Factory
             'nationality' => 'Mexicana',
             'children_count' => $this->faker->numberBetween(0, 4),
             'address' => $this->faker->optional()->address(),
-            'business_unit' => $this->faker->randomElement(['Jade', 'Fuego Ambar', 'KIN']),
+            'business_unit' => $this->faker->randomElement(['Jade', 'Jade Orgánico', 'KIN']),
             'department' => $this->faker->randomElement(['Cocina', 'Servicio', 'Caja', 'Administración', 'Limpieza']),
             'manager_name' => $this->faker->optional()->name(),
             'hired_at' => $this->faker->dateTimeBetween('-5 years', 'now'),

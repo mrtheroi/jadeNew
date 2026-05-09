@@ -1,5 +1,5 @@
-# Jade v1.6.0
-Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Fuego Ambar, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
+# Jade v1.6.1
+Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Jade Orgánico, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
@@ -74,7 +74,7 @@ Los roles y permisos se crean con el seeder `RolSeeder` al ejecutar `php artisan
 ## Unidades de Negocio
 El sistema soporta tres unidades de negocio definidas en el enum `App\Domain\BusinessUnit`:
 - **Jade**
-- **Fuego Ambar**
+- **Jade Orgánico**
 - **KIN**
 
 Cada registro de ventas, gastos, categorias e ingresos esta asociado a una unidad de negocio.
@@ -123,7 +123,7 @@ app/
 │   └── Supplies/
 │       └── SuppliesQuery.php                  # Query builder con filtros para tabla de supplies
 ├── Domain/
-│   └── BusinessUnit.php                       # Enum: Jade, Fuego Ambar, KIN
+│   └── BusinessUnit.php                       # Enum: Jade, Jade Orgánico, KIN
 ├── Enums/                                     # (reservado para futuros enums)
 ├── Exports/
 │   ├── ExpensesReportExport.php               # Export multi-hoja de gastos (Excel)
@@ -389,7 +389,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.6.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.6.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT

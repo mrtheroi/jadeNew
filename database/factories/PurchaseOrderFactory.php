@@ -13,7 +13,7 @@ class PurchaseOrderFactory extends Factory
 {
     public function definition(): array
     {
-        $unit = $this->faker->randomElement(['Jade', 'Fuego Ambar', 'KIN']);
+        $unit = $this->faker->randomElement(['Jade', 'Jade Orgánico', 'KIN']);
         $unitSlug = str_replace(' ', '', $unit);
         $date = $this->faker->dateTimeBetween('-3 months', 'now');
 

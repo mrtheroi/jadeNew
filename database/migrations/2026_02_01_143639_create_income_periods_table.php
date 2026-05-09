@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('income_periods', function (Blueprint $table) {
             $table->id();
 
-            $table->string('business_unit')->index(); // Jade | Fuego Ambar | KIN
+            $table->string('business_unit')->index(); // Jade | Jade Orgánico | KIN
             $table->string('period_key')->index();    // YYYY-MM (ej. 2026-01)
 
             $table->decimal('income_amount', 12, 2)->default(0);
