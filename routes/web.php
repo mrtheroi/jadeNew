@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardExportController;
+use App\Http\Controllers\EmployeeContractPdfController;
 use App\Http\Controllers\PurchaseOrderPdfController;
 use App\Livewire\Expenses\CategoryController;
 use App\Livewire\Expenses\ExpenseTypeController;
@@ -55,6 +56,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Recursos Humanos
     Route::get('rrhh/empleados', EmployeesController::class)->name('rrhh.empleados');
+    Route::get('rrhh/empleados/{employee}/contrato/pdf', [EmployeeContractPdfController::class, 'show'])
+        ->name('rrhh.empleados.contrato.pdf');
 
     Route::redirect('settings', 'settings/profile');
 

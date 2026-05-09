@@ -16,6 +16,12 @@ class SupplyForm extends Form
     #[Rule('required|exists:categories,id')]
     public string $category_id = '';
 
+    #[Rule('required|exists:employees,id')]
+    public ?int $requester_id = null;
+
+    #[Rule('required|exists:employees,id')]
+    public ?int $approver_id = null;
+
     #[Rule('required|numeric|min:0')]
     public string $amount = '';
 
@@ -46,6 +52,8 @@ class SupplyForm extends Form
         $this->supplyId = $supply->id;
         $this->business_unit = $supply->category?->business_unit ?? '';
         $this->category_id = (string) $supply->category_id;
+        $this->requester_id = $supply->requester_id;
+        $this->approver_id = $supply->approver_id;
         $this->is_adjustment = ((float) $supply->amount) < 0;
         $this->amount = (string) abs((float) $supply->amount);
         $this->payment_type = $supply->payment_type;

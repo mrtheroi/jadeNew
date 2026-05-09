@@ -566,18 +566,31 @@
     <x-modal wire:model="open" maxWidth="2xl">
         <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                {{ $form->supplyId ? 'Editar registro' : 'Nuevo registro' }}
+                @if($backfillMode)
+                    Completar solicitante y aprobador
+                @else
+                    {{ $form->supplyId ? 'Editar registro' : 'Nuevo registro' }}
+                @endif
             </h3>
         </div>
 
         <div class="p-4 space-y-4">
+            @if($backfillMode)
+                <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-900/30 dark:text-amber-200">
+                    <i class="fa-thin fa-circle-info mr-1"></i>
+                    Esta compra pertenece a una OC cerrada. Solo podés actualizar <strong>solicitante</strong> y <strong>aprobador</strong>; el resto de los datos quedan bloqueados por inmutabilidad contable.
+                </div>
+            @endif
+
             <div class="grid gap-3 sm:grid-cols-2">
                 <x-form-field label="Unidad de negocio" name="form.business_unit">
                     <select
                         wire:model.live="form.business_unit"
+                        @disabled($backfillMode)
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
-                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                               disabled:bg-gray-50 disabled:cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                     >
                         <option value="">— Elegí una unidad —</option>
                         @foreach(\App\Domain\BusinessUnit::cases() as $bu)
@@ -592,7 +605,7 @@
                             type="text"
                             wire:model.live.debounce.300ms="categorySearch"
                             x-on:keydown.escape="$wire.set('categoryResults', [])"
-                            @disabled(! $form->business_unit)
+                            @disabled(! $form->business_unit || $backfillMode)
                             placeholder="{{ $form->business_unit ? 'Buscar categoría de '.$form->business_unit.'…' : 'Elegí una unidad primero' }}"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
@@ -623,14 +636,59 @@
                         @endif
                     </div>
                 </x-form-field>
+
+                <x-form-field label="Solicitante" name="form.requester_id">
+                    <select
+                        wire:model="form.requester_id"
+                        @disabled(empty($employeesForUnit))
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               disabled:bg-gray-50 disabled:cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
+                    >
+                        <option value="">{{ $form->business_unit ? '— Elegí un empleado —' : 'Elegí una unidad primero' }}</option>
+                        @foreach($employeesForUnit as $emp)
+                            <option value="{{ $emp['id'] }}">{{ $emp['full_name'] }}</option>
+                        @endforeach
+                    </select>
+                </x-form-field>
+
+                <x-form-field label="Aprobador" name="form.approver_id">
+                    <select
+                        wire:model="form.approver_id"
+                        @disabled(empty($employeesForUnit))
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               disabled:bg-gray-50 disabled:cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
+                    >
+                        <option value="">{{ $form->business_unit ? '— Elegí un empleado —' : 'Elegí una unidad primero' }}</option>
+                        @foreach($employeesForUnit as $emp)
+                            <option value="{{ $emp['id'] }}">{{ $emp['full_name'] }}</option>
+                        @endforeach
+                    </select>
+                </x-form-field>
+
+                @if($form->business_unit && empty($employeesForUnit))
+                    <div class="sm:col-span-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-900/30 dark:text-amber-200">
+                        <i class="fa-thin fa-circle-info mr-1"></i>
+                        No hay empleados activos cargados en <strong>{{ $form->business_unit }}</strong>. Cargá al menos uno para poder asignar solicitante y aprobador.
+                        <a href="{{ route('rrhh.empleados') }}" class="ml-1 font-semibold underline hover:no-underline">
+                            Ir a RRHH →
+                        </a>
+                    </div>
+                @endif
+
                 <x-form-field label="Fecha de pago" name="form.payment_date">
                     <input
                         id="payment_date"
                         type="date"
                         wire:model="form.payment_date"
+                        @disabled($backfillMode)
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
-                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                               disabled:bg-gray-50 disabled:cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                     >
                 </x-form-field>
 
@@ -641,14 +699,16 @@
                             type="number"
                             step="0.01"
                             wire:model="form.amount"
+                            @disabled($backfillMode)
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
-                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                                   disabled:bg-gray-50 disabled:cursor-not-allowed
+                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                         >
                     </x-form-field>
 
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
-                        <input type="checkbox" wire:model="form.is_adjustment" class="rounded border-gray-300 dark:border-white/15">
+                        <input type="checkbox" wire:model="form.is_adjustment" @disabled($backfillMode) class="rounded border-gray-300 dark:border-white/15">
                         Es ajuste (guardar negativo)
                     </label>
                     @error('form.is_adjustment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
@@ -658,9 +718,11 @@
                     <select
                         id="payment_type"
                         wire:model="form.payment_type"
+                        @disabled($backfillMode)
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
-                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                               disabled:bg-gray-50 disabled:cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                     >
                         <option value="">—</option>
                         <option value="efectivo">Efectivo</option>
@@ -676,9 +738,11 @@
                     <select
                         id="status"
                         wire:model="form.status"
+                        @disabled($backfillMode)
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
                                focus:border-emerald-500 focus:ring-emerald-500
-                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                               disabled:bg-gray-50 disabled:cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                     >
                         <option value="pendiente">Pendiente</option>
                         <option value="pagado">Pagado</option>
@@ -692,54 +756,58 @@
                             id="notes"
                             rows="3"
                             wire:model="form.notes"
+                            @disabled($backfillMode)
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
                                    focus:border-emerald-500 focus:ring-emerald-500
-                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                                   disabled:bg-gray-50 disabled:cursor-not-allowed
+                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                         ></textarea>
                     </x-form-field>
                 </div>
 
-                {{-- Comprobante (imagen) --}}
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Comprobante</label>
+                {{-- Comprobante (imagen) — oculto en modo backfill (no editable en OC cerrada) --}}
+                @if(! $backfillMode)
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-200">Comprobante</label>
 
-                    @if($form->existingReceiptPath && !$form->removeReceipt && !$form->receipt)
-                        <div class="mt-1 flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-gray-800/40">
-                            <i class="fa-thin fa-image text-lg text-gray-400"></i>
-                            <span class="flex-1 truncate text-xs text-gray-700 dark:text-gray-200">Comprobante adjunto</span>
-                            <button
-                                type="button"
-                                wire:click="$set('form.removeReceipt', true)"
-                                class="rounded-md p-1 text-rose-600 hover:bg-rose-50 transition dark:text-rose-400 dark:hover:bg-rose-900/30"
-                                title="Eliminar comprobante"
+                        @if($form->existingReceiptPath && !$form->removeReceipt && !$form->receipt)
+                            <div class="mt-1 flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-gray-800/40">
+                                <i class="fa-thin fa-image text-lg text-gray-400"></i>
+                                <span class="flex-1 truncate text-xs text-gray-700 dark:text-gray-200">Comprobante adjunto</span>
+                                <button
+                                    type="button"
+                                    wire:click="$set('form.removeReceipt', true)"
+                                    class="rounded-md p-1 text-rose-600 hover:bg-rose-50 transition dark:text-rose-400 dark:hover:bg-rose-900/30"
+                                    title="Eliminar comprobante"
+                                >
+                                    <i class="fa-thin fa-trash fa-fw text-[13px]"></i>
+                                </button>
+                            </div>
+                        @else
+                            <input
+                                type="file"
+                                wire:model="form.receipt"
+                                accept="image/*"
+                                class="mt-1 block w-full text-xs text-gray-700 dark:text-gray-200
+                                       file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-emerald-700
+                                       hover:file:bg-emerald-100
+                                       dark:file:bg-emerald-900/30 dark:file:text-emerald-300"
                             >
-                                <i class="fa-thin fa-trash fa-fw text-[13px]"></i>
-                            </button>
-                        </div>
-                    @else
-                        <input
-                            type="file"
-                            wire:model="form.receipt"
-                            accept="image/*"
-                            class="mt-1 block w-full text-xs text-gray-700 dark:text-gray-200
-                                   file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-emerald-700
-                                   hover:file:bg-emerald-100
-                                   dark:file:bg-emerald-900/30 dark:file:text-emerald-300"
-                        >
-                        <div wire:loading wire:target="form.receipt" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            <i class="fa-thin fa-spinner-third animate-spin mr-1"></i> Subiendo imagen…
-                        </div>
-                    @endif
+                            <div wire:loading wire:target="form.receipt" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                <i class="fa-thin fa-spinner-third animate-spin mr-1"></i> Subiendo imagen…
+                            </div>
+                        @endif
 
-                    @if($form->receipt && $form->receipt->isPreviewable())
-                        <div class="mt-2">
-                            <img src="{{ $form->receipt->temporaryUrl() }}" alt="Vista previa" class="h-24 w-auto rounded-md border border-gray-200 object-cover dark:border-white/10">
-                        </div>
-                    @endif
+                        @if($form->receipt && $form->receipt->isPreviewable())
+                            <div class="mt-2">
+                                <img src="{{ $form->receipt->temporaryUrl() }}" alt="Vista previa" class="h-24 w-auto rounded-md border border-gray-200 object-cover dark:border-white/10">
+                            </div>
+                        @endif
 
-                    @error('form.receipt') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Opcional. Imagen del comprobante (máx. 5MB).</p>
-                </div>
+                        @error('form.receipt') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Opcional. Imagen del comprobante (máx. 5MB).</p>
+                    </div>
+                @endif
             </div>
         </div>
 

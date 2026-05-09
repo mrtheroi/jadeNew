@@ -8,6 +8,7 @@ use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
 use App\Livewire\Expenses\Forms\SupplyForm;
 use App\Models\Category;
+use App\Models\Employee;
 use App\Models\Supply;
 use App\Services\PurchaseOrderGenerator;
 use App\Services\Reports\ExpensesReportService;
@@ -68,6 +69,20 @@ class SuppliesController extends Component
     public $categorySearch = '';
 
     public $categoryResults = [];
+
+    /**
+     * Modo backfill: el Supply pertenece a una OC cerrada y solo se permite
+     * editar solicitante/aprobador. El resto de campos queda readonly.
+     */
+    public bool $backfillMode = false;
+
+    /**
+     * Lista de empleados activos de la unidad de negocio actual del form,
+     * usada para los selectores de solicitante y aprobador.
+     *
+     * @var array<int, array{id: int, full_name: string}>
+     */
+    public array $employeesForUnit = [];
 
     public function mount(): void
     {
@@ -224,6 +239,8 @@ class SuppliesController extends Component
     {
         $this->form->reset();
         $this->resetCategorySearch();
+        $this->backfillMode = false;
+        $this->employeesForUnit = [];
         $this->open = true;
     }
 
@@ -232,29 +249,56 @@ class SuppliesController extends Component
         $this->open = false;
         $this->resetCategorySearch();
         $this->resetValidation();
+        $this->backfillMode = false;
+        $this->employeesForUnit = [];
     }
 
     public function edit(int $id): void
     {
         $supply = Supply::with(['purchaseOrder', 'category.expenseType'])->findOrFail($id);
 
-        if ($supply->isLocked()) {
-            $this->dispatch('notify', message: 'Esta compra está asociada a una OC cerrada y no puede editarse. Anulá la OC para liberarla.', type: 'warning');
-
-            return;
-        }
-
         $this->resetCategorySearch();
         $this->form->fillFromModel($supply);
         $this->categorySearch = $this->buildCategoryLabel($supply->category);
+
+        // Si pertenece a una OC cerrada, abrimos en modo backfill: solo se puede
+        // completar/corregir solicitante y aprobador (metadata informativa).
+        $this->backfillMode = $supply->isLocked();
+
+        if ($this->backfillMode) {
+            $this->dispatch('notify', message: 'Esta compra pertenece a una OC cerrada. Solo podés completar solicitante y aprobador.', type: 'info');
+        }
+
+        $this->loadEmployeesForUnit();
         $this->open = true;
     }
 
     public function updatedFormBusinessUnit(): void
     {
-        // Cambiar la unidad invalida la categoría seleccionada (no tiene sentido cross-unidad).
+        // Cambiar la unidad invalida la categoría seleccionada y los selectores
+        // de solicitante/aprobador (no tiene sentido cross-unidad).
         $this->form->category_id = '';
+        $this->form->requester_id = null;
+        $this->form->approver_id = null;
         $this->resetCategorySearch();
+        $this->loadEmployeesForUnit();
+    }
+
+    private function loadEmployeesForUnit(): void
+    {
+        if (! $this->form->business_unit) {
+            $this->employeesForUnit = [];
+
+            return;
+        }
+
+        $this->employeesForUnit = Employee::query()
+            ->active()
+            ->where('business_unit', $this->form->business_unit)
+            ->orderBy('full_name')
+            ->get(['id', 'full_name'])
+            ->map(fn (Employee $e) => ['id' => $e->id, 'full_name' => $e->full_name])
+            ->all();
     }
 
     private function buildCategoryLabel(?Category $cat): string
@@ -275,12 +319,31 @@ class SuppliesController extends Component
     // Guardar (create / update)
     public function save(): void
     {
+        if ($this->backfillMode) {
+            $this->saveBackfill();
+
+            return;
+        }
+
         $validated = $this->form->validate();
 
         // Validación cruzada: la categoría debe pertenecer a la unidad seleccionada.
         $cat = Category::find($validated['category_id']);
         if ($cat && $cat->business_unit !== $validated['business_unit']) {
             $this->form->addError('category_id', 'La categoría seleccionada no pertenece a la unidad de negocio elegida.');
+
+            return;
+        }
+
+        // Validación cruzada: solicitante y aprobador deben pertenecer a la unidad seleccionada.
+        if (! $this->employeeBelongsToUnit($validated['requester_id'], $validated['business_unit'])) {
+            $this->form->addError('requester_id', 'El solicitante no pertenece a la unidad de negocio seleccionada.');
+
+            return;
+        }
+
+        if (! $this->employeeBelongsToUnit($validated['approver_id'], $validated['business_unit'])) {
+            $this->form->addError('approver_id', 'El aprobador no pertenece a la unidad de negocio seleccionada.');
 
             return;
         }
@@ -326,6 +389,58 @@ class SuppliesController extends Component
         $this->closeModal();
         $this->resetCategorySearch();
         $this->form->reset();
+    }
+
+    /**
+     * Persiste solo solicitante/aprobador para Supplies dentro de OC cerrada.
+     * El resto de campos queda intacto (inmutabilidad contable preservada).
+     */
+    private function saveBackfill(): void
+    {
+        if (! $this->form->supplyId) {
+            return;
+        }
+
+        $validated = $this->form->validate([
+            'requester_id' => 'required|exists:employees,id',
+            'approver_id' => 'required|exists:employees,id',
+        ]);
+
+        if (! $this->employeeBelongsToUnit($validated['requester_id'], $this->form->business_unit)) {
+            $this->form->addError('requester_id', 'El solicitante no pertenece a la unidad de negocio del Supply.');
+
+            return;
+        }
+
+        if (! $this->employeeBelongsToUnit($validated['approver_id'], $this->form->business_unit)) {
+            $this->form->addError('approver_id', 'El aprobador no pertenece a la unidad de negocio del Supply.');
+
+            return;
+        }
+
+        Supply::query()
+            ->whereKey($this->form->supplyId)
+            ->update([
+                'requester_id' => $validated['requester_id'],
+                'approver_id' => $validated['approver_id'],
+            ]);
+
+        $this->dispatch('notify', message: 'Solicitante y aprobador actualizados correctamente.', type: 'success');
+
+        $this->closeModal();
+        $this->form->reset();
+    }
+
+    private function employeeBelongsToUnit(int|string|null $employeeId, string $unit): bool
+    {
+        if (! $employeeId || ! $unit) {
+            return false;
+        }
+
+        return Employee::query()
+            ->whereKey($employeeId)
+            ->where('business_unit', $unit)
+            ->exists();
     }
 
     // Preparar eliminación (igual que Users)

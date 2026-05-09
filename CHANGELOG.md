@@ -5,6 +5,64 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.8.0] - 2026-05-09
+
+### Agregado
+
+- **Numeración automática de empleados (formato `WYB-XXXX`)**: el campo `employee_number` ya no se teclea — se asigna automáticamente al guardar un empleado nuevo, en formato `WYB-0001`, `WYB-0002`, etc. con padding de 4 dígitos. El servicio `App\Services\EmployeeNumberGenerator` calcula el siguiente número buscando el `MAX(employee_number)` que matchee el patrón `WYB-XXXX` y sumando 1; si no existe ninguno, arranca en `WYB-0001`. Los empleados históricos cargados a mano antes de esta convención **conservan su número original** y son ignorados por el generador
+  - **Form**: el campo en el modal queda `readonly` con texto auxiliar "Formato WYB-XXXX, asignado automáticamente. No es editable"
+  - **Edición**: en update el número original se conserva intacto (NO se regenera)
+- **Salario en empleados** con privacidad por rol: nuevos campos `salary_gross`, `salary_net` y `salary_period` (`Semanal` / `Quincenal` / `Mensual`). Los tres son nullable a nivel BD pero opcionales a nivel form (no requeridos para crear empleado)
+  - **Privacidad — gate `view-salary`**: registrado en `AppServiceProvider::boot()`, retorna true solo si el usuario tiene rol `Super` o `Admin`. Aplica en dos puntos:
+    - **Frontend**: la sección "Salario" del modal queda envuelta en `@can('view-salary')` — usuarios con rol básico no ven los inputs
+    - **Backend (defensa en profundidad)**: `EmployeesController::save()` descarta los campos de salario del array validado si el usuario carece de la gate, aunque venga manipulado por el cliente
+- **Beneficiario único en empleados** (LFT art. 501): nuevos campos planos `beneficiary_name`, `beneficiary_relationship`, `beneficiary_phone`, `beneficiary_percentage` (default 100). Se rendean como tabla en la cláusula II.c del contrato. Si no hay datos, el contrato muestra "Sin información a mostrar"
+- **Puesto del empleado**: nuevo campo `position` (string nullable). Se usa en la cláusula tercera del contrato laboral
+- **Datos de empresa por unidad de negocio (`config/company.php`)**: estructura `units` indexada por nombre de unidad (`Jade`, `Jade Orgánico`, `KIN`). Cada entrada contiene razón social, nombre comercial, apoderado legal, domicilio, RFC, objeto social y ciudad de firma. Solo `Jade` está cargada con datos reales (de Café Jade Restaurante en Palenque, Chiapas); `Jade Orgánico` y `KIN` quedan con placeholders `[DUMMY]` para reemplazar cuando el negocio confirme la información real. El contrato del empleado lee el bloque correspondiente vía `Employee::companyData()` según la `business_unit` del empleado
+- **Generación on-demand del Contrato Individual de Trabajo (PDF)**: nuevo endpoint `GET /rrhh/empleados/{employee}/contrato/pdf` (named `rrhh.empleados.contrato.pdf`) que genera con DomPDF el contrato laboral del empleado, populando todas las cláusulas con datos reales (datos personales, fecha de ingreso, puesto, salario diario calculado, beneficiario, datos de la empresa según unidad). Botón "Descargar contrato" (icono `fa-file-pdf`) agregado a cada fila del listado de empleados
+  - **Helper `Employee::dailySalary()`**: calcula salario diario dividiendo `salary_gross` por 30 (mensual), 15 (quincenal) o 7 (semanal) según `salary_period`. Convención de nómina mexicana
+  - **Helper `Employee::dailySalaryInWords()`**: convierte el salario diario a formato cheque mexicano (`(DOSCIENTOS CUARENTA Y OCHO 93/100)`) usando `NumberFormatter` con locale `es_MX` (extensión `intl` ya disponible en PHP 8.4)
+  - **Locale `es` forzado en el controller** del PDF para que `Carbon::isoFormat('DD [de] MMMM [de] YYYY')` rinda los meses en español, sin afectar el locale global de la app
+- **13 tests nuevos**: `tests/Feature/EmployeeNumberGeneratorTest.php` (4 tests del generador, incluye orden numérico vs string para evitar bug `WYB-0009` > `WYB-0010`) y `tests/Feature/EmployeeContractTest.php` (9 tests: endpoint PDF responde 200 PDF, requiere auth, helpers `dailySalary` / `dailySalaryInWords` / `companyData`, gate `view-salary` permite solo Super/Admin, save descarta salario para usuarios sin gate y persiste para los autorizados)
+
+### Cambiado
+
+- **`EmployeesController::save()`** ahora recibe `EmployeeNumberGenerator` por inyección (Livewire lo resuelve automáticamente) y le pide el siguiente número solo cuando se crea un empleado. En edición no toca `employee_number`
+- **2 tests de `EmployeesCrudTest` adaptados al nuevo flujo**: `can create an employee from the controller` ahora verifica que el número generado matchea `/^WYB-\d{4}$/` (en vez de buscar un número manual). El test `cannot create employee with duplicated employee_number` se reemplazó por `consecutive employee creates produce sequential WYB numbers` que valida que dos saves consecutivos producen `WYB-0001` y `WYB-0002`
+
+### Migración de datos
+
+- **Migración aditiva** `2026_05_09_170138_add_position_salary_and_beneficiary_to_employees_table`: agrega 8 columnas a `employees` (todas nullable o con default seguro). Sin data-fill — los empleados existentes quedan con esos campos en `null` / `100` (default de `beneficiary_percentage`). El down() borra las columnas
+
+---
+
+## [1.7.0] - 2026-05-09
+
+### Agregado
+
+- **Trazabilidad de solicitante y aprobador en compras**: cada `Supply` captura ahora dos nuevos campos — `requester_id` (solicitante) y `approver_id` (aprobador) — referenciando `employees.id`. Es metadata informativa sobre quién pidió y quién autorizó cada compra, NO un flujo de aprobación previa transaccional (esa decisión sigue intacta desde 1.5.0). Aplica end-to-end:
+  - **Captura en el formulario**: dos `<select>` nuevos en el modal de creación/edición de Supplies. Validación `required|exists:employees,id` en `SupplyForm`. Los selectores se filtran por la unidad de negocio del Supply (resuelta vía `category.business_unit`) — no se puede elegir un empleado de KIN para una compra de Jade Orgánico
+  - **Aviso cuando la unidad no tiene empleados activos**: si el usuario elige una unidad y no hay ningún empleado activo cargado para ella, los dos `<select>` quedan deshabilitados y un banner ámbar muestra «No hay empleados activos cargados en {unidad}» con link directo al módulo de RRHH (`rrhh.empleados`). Evita el cuello de botella UX donde el form quedaba mudo sin explicar por qué no se podía continuar
+  - **Cascada con cambio de unidad**: el hook `updatedFormBusinessUnit()` también limpia `requester_id` / `approver_id` y recarga el listado de empleados al cambiar de unidad, evitando estados inconsistentes
+  - **Validación cruzada al guardar**: además de `required|exists`, se verifica que el empleado pertenezca a la unidad de negocio elegida. Defensa en profundidad sobre el guard de UI
+  - **Render en la vista de OC (web)**: el modal de detalle de OC muestra «Solicitó: …» y «Aprobó: …» en cada compra. Si el dato es `null` (compra histórica) se muestra «—»
+  - **Render en el PDF de OC**: dos columnas nuevas («Solicitante» y «Aprobador») se suman a la tabla de compras del PDF. El PDF cambia a orientación **landscape** para acomodar las columnas con legibilidad
+  - **Eager loading**: `PurchaseOrderPdfController::show()` y `PurchaseOrdersController::showDetail()` ahora cargan `supplies.requester` y `supplies.approver` para evitar N+1 al renderizar nombres
+- **Backfill de solicitante/aprobador en compras dentro de OC cerrada (bypass parcial del lock)**: las compras que pertenecen a una OC cerrada siguen lockeadas para edición vía `Supply::isLocked()`, PERO ahora el form abre en **modo backfill**: se permite actualizar SOLO `requester_id` y `approver_id`. El resto de campos (item, cantidad, precio, fecha, estado) queda readonly. Esto preserva la inmutabilidad contable de la OC mientras permite completar la metadata informativa de compras históricas
+  - **UI**: el modal muestra un banner amarillo informativo en backfill mode, los campos no-bypass aparecen `disabled`, el bloque de comprobante se oculta, y el header del modal cambia a «Completar solicitante y aprobador»
+  - **Backend**: `SuppliesController::edit()` setea `$backfillMode = $supply->isLocked()`. `SuppliesController::save()` se desvía a `saveBackfill()` que valida y persiste solo los dos campos vía un `update()` directo
+- **11 nuevos tests** en `tests/Feature/SupplyRequesterApproverTest.php`: cubren validación required, validación cruzada por unidad, modo backfill (apertura, persistencia parcial, rechazo de empleados de otra unidad, no-aplicación cuando no hay OC cerrada), eager loading en el modal de detalle de OC y endpoint del PDF
+
+### Cambiado
+
+- **PDF de Orden de Compra**: orientación pasa de portrait a **landscape** para acomodar las columnas nuevas de Solicitante y Aprobador sin sacrificar legibilidad
+
+### Migración de datos
+
+- **Migración aditiva** `2026_05_09_160936_add_requester_and_approver_to_supplies_table`: agrega `requester_id` y `approver_id` a `supplies` como `foreignId` nullable con `nullOnDelete` apuntando a `employees`. Los Supplies pre-existentes quedan en `null` (de ahí el «—» en la OC) y pueden completarse vía edit aunque la OC ya esté cerrada. Schema tolerante (nullable) + form estricto (required) — patrón intencional para soportar backfill de históricos sin romper datos viejos
+
+---
+
 ## [1.6.1] - 2026-05-09
 
 ### Cambiado

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class Supply extends Model
@@ -14,6 +15,8 @@ class Supply extends Model
     protected $fillable = [
         'category_id',
         'purchase_order_id',
+        'requester_id',
+        'approver_id',
         'amount',
         'payment_type',
         'payment_date',
@@ -55,6 +58,16 @@ class Supply extends Model
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function requester(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'requester_id');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'approver_id');
     }
 
     /**

@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\LlamaIndexService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Solo Super y Admin pueden ver/editar campos de salario en empleados.
+        Gate::define('view-salary', fn (User $user): bool => $user->hasAnyRole(['Super', 'Admin']));
     }
 }

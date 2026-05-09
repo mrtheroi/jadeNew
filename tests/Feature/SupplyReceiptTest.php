@@ -2,6 +2,7 @@
 
 use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
+use App\Models\Employee;
 use App\Models\Supply;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -12,6 +13,8 @@ beforeEach(function () {
     Storage::fake('public');
     $this->user = User::factory()->create();
     $this->category = Category::factory()->create(['business_unit' => 'Jade']);
+    $this->requester = Employee::factory()->create(['business_unit' => 'Jade', 'is_active' => true]);
+    $this->approver = Employee::factory()->create(['business_unit' => 'Jade', 'is_active' => true]);
 });
 
 test('supply can be created with receipt image', function () {
@@ -20,7 +23,10 @@ test('supply can be created with receipt image', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
+        ->set('form.business_unit', 'Jade')
         ->set('form.category_id', $this->category->id)
+        ->set('form.requester_id', $this->requester->id)
+        ->set('form.approver_id', $this->approver->id)
         ->set('form.amount', 1500)
         ->set('form.status', 'pendiente')
         ->set('form.payment_date', now()->format('Y-m-d'))
@@ -41,7 +47,10 @@ test('supply can be created without receipt image', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
+        ->set('form.business_unit', 'Jade')
         ->set('form.category_id', $this->category->id)
+        ->set('form.requester_id', $this->requester->id)
+        ->set('form.approver_id', $this->approver->id)
         ->set('form.amount', 800)
         ->set('form.status', 'pagado')
         ->set('form.payment_date', now()->format('Y-m-d'))
@@ -61,7 +70,10 @@ test('supply receipt can be replaced on edit', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
+        ->set('form.business_unit', 'Jade')
         ->set('form.category_id', $this->category->id)
+        ->set('form.requester_id', $this->requester->id)
+        ->set('form.approver_id', $this->approver->id)
         ->set('form.amount', 2000)
         ->set('form.status', 'pendiente')
         ->set('form.payment_date', now()->format('Y-m-d'))
@@ -97,7 +109,10 @@ test('supply receipt is deleted when supply is destroyed', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('create')
+        ->set('form.business_unit', 'Jade')
         ->set('form.category_id', $this->category->id)
+        ->set('form.requester_id', $this->requester->id)
+        ->set('form.approver_id', $this->approver->id)
         ->set('form.amount', 500)
         ->set('form.status', 'pendiente')
         ->set('form.payment_date', now()->format('Y-m-d'))

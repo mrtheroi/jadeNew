@@ -95,6 +95,8 @@
                 <thead>
                     <tr>
                         <th>Tipo / Categoría</th>
+                        <th>Solicitante</th>
+                        <th>Aprobador</th>
                         <th>Método</th>
                         <th>Estado</th>
                         <th class="num">Monto</th>
@@ -107,6 +109,8 @@
                                 <strong>{{ $supply->category?->expenseType?->expense_type_name ?? '—' }}</strong>
                                 — {{ $supply->category?->expense_name ?? '—' }}
                             </td>
+                            <td>{{ $supply->requester?->full_name ?? '—' }}</td>
+                            <td>{{ $supply->approver?->full_name ?? '—' }}</td>
                             <td>{{ $supply->payment_type ?? '—' }}</td>
                             <td>{{ ucfirst($supply->status ?? '—') }}</td>
                             <td class="num">$ {{ number_format((float) $supply->amount, 2) }}</td>

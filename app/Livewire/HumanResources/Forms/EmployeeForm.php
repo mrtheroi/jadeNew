@@ -11,6 +11,8 @@ class EmployeeForm extends Form
     public ?int $selected_id = null;
 
     // Identificación
+    // Para empleados nuevos se asigna automáticamente vía EmployeeNumberGenerator (WYB-XXXX).
+    // Para edición conserva el valor original.
     public string $employee_number = '';
 
     public string $full_name = '';
@@ -43,6 +45,14 @@ class EmployeeForm extends Form
 
     public ?string $manager_name = null;
 
+    public ?string $position = null;
+
+    public ?string $salary_gross = null;
+
+    public ?string $salary_net = null;
+
+    public ?string $salary_period = null;
+
     public ?string $hired_at = null;
 
     public bool $is_active = true;
@@ -55,6 +65,15 @@ class EmployeeForm extends Form
     public ?string $emergency_contact_phone = null;
 
     public ?string $emergency_contact_relationship = null;
+
+    // Beneficiario (LFT art. 501)
+    public ?string $beneficiary_name = null;
+
+    public ?string $beneficiary_relationship = null;
+
+    public ?string $beneficiary_phone = null;
+
+    public string $beneficiary_percentage = '100';
 
     public function rules(): array
     {
@@ -77,6 +96,10 @@ class EmployeeForm extends Form
             'business_unit' => ['required', VRule::in(['Jade', 'Jade Orgánico', 'KIN'])],
             'department' => ['nullable', 'string', 'max:100'],
             'manager_name' => ['nullable', 'string', 'max:100'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'salary_gross' => ['nullable', 'numeric', 'min:0'],
+            'salary_net' => ['nullable', 'numeric', 'min:0'],
+            'salary_period' => ['nullable', VRule::in(['Semanal', 'Quincenal', 'Mensual'])],
             'hired_at' => ['nullable', 'date'],
             'is_active' => ['boolean'],
             'terminated_at' => [
@@ -86,6 +109,10 @@ class EmployeeForm extends Form
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
             'emergency_contact_relationship' => ['nullable', 'string', 'max:50'],
+            'beneficiary_name' => ['nullable', 'string', 'max:255'],
+            'beneficiary_relationship' => ['nullable', 'string', 'max:50'],
+            'beneficiary_phone' => ['nullable', 'string', 'max:30'],
+            'beneficiary_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 
@@ -117,12 +144,20 @@ class EmployeeForm extends Form
         $this->business_unit = $employee->business_unit;
         $this->department = $employee->department;
         $this->manager_name = $employee->manager_name;
+        $this->position = $employee->position;
+        $this->salary_gross = $employee->salary_gross !== null ? (string) $employee->salary_gross : null;
+        $this->salary_net = $employee->salary_net !== null ? (string) $employee->salary_net : null;
+        $this->salary_period = $employee->salary_period;
         $this->hired_at = $employee->hired_at?->format('Y-m-d');
         $this->is_active = (bool) $employee->is_active;
         $this->terminated_at = $employee->terminated_at?->format('Y-m-d');
         $this->emergency_contact_name = $employee->emergency_contact_name;
         $this->emergency_contact_phone = $employee->emergency_contact_phone;
         $this->emergency_contact_relationship = $employee->emergency_contact_relationship;
+        $this->beneficiary_name = $employee->beneficiary_name;
+        $this->beneficiary_relationship = $employee->beneficiary_relationship;
+        $this->beneficiary_phone = $employee->beneficiary_phone;
+        $this->beneficiary_percentage = $employee->beneficiary_percentage !== null ? (string) $employee->beneficiary_percentage : '100';
     }
 
     public function isEditing(): bool

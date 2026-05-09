@@ -4,6 +4,7 @@ use App\Application\Supplies\SuppliesQuery;
 use App\Livewire\Expenses\PurchaseOrdersController;
 use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
+use App\Models\Employee;
 use App\Models\PurchaseOrder;
 use App\Models\Supply;
 use App\Models\User;
@@ -179,17 +180,19 @@ test('cancelling an OC releases its supplies', function () {
 
 // ─── LIVEWIRE Supplies: bloqueo y generación ────────────────────────────
 
-test('SuppliesController blocks editing supplies with closed OC', function () {
+test('SuppliesController opens edit modal in backfill mode for supplies with closed OC', function () {
     $oc = PurchaseOrder::factory()->create();
     $supply = Supply::factory()->create([
         'category_id' => $this->categoryJade->id,
         'purchase_order_id' => $oc->id,
     ]);
 
+    // Modal abre en backfill: solo solicitante/aprobador son editables.
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->call('edit', $supply->id)
-        ->assertSet('open', false);
+        ->assertSet('open', true)
+        ->assertSet('backfillMode', true);
 });
 
 test('SuppliesController blocks deleting supplies with closed OC', function () {
@@ -351,11 +354,15 @@ test('SupplyForm requires business_unit when saving', function () {
 });
 
 test('save rejects mismatch between form business_unit and category business_unit', function () {
+    $emp = Employee::factory()->create(['business_unit' => 'Jade', 'is_active' => true]);
+
     // categoryJade es Jade, intentamos guardarlo como KIN — debe rechazar.
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
         ->set('form.business_unit', 'KIN')
         ->set('form.category_id', (string) $this->categoryJade->id)
+        ->set('form.requester_id', $emp->id)
+        ->set('form.approver_id', $emp->id)
         ->set('form.amount', '100')
         ->set('form.payment_date', Carbon::today()->toDateString())
         ->set('form.status', 'pendiente')

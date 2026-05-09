@@ -13,9 +13,14 @@
                 <i class="fa-thin fa-id-card mr-1"></i> Identificación
             </h4>
             <div class="grid gap-3 sm:grid-cols-2">
-                <x-form-field label="No. de empleado *" name="form.employee_number">
-                    <input type="text" wire:model="form.employee_number" placeholder="EMP-1234"
-                        class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                <x-form-field label="No. de empleado" name="form.employee_number">
+                    <input type="text" wire:model="form.employee_number" readonly
+                        placeholder="{{ $form->isEditing() ? '' : 'Se asigna automáticamente al guardar' }}"
+                        class="block w-full rounded-md border border-gray-300 bg-gray-50 py-2 px-3 text-xs text-gray-700 shadow-sm cursor-not-allowed
+                               dark:border-white/15 dark:bg-gray-800/60 dark:text-gray-300">
+                    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                        Formato <strong>WYB-XXXX</strong>, asignado automáticamente. No es editable.
+                    </p>
                 </x-form-field>
 
                 <x-form-field label="Nombre completo *" name="form.full_name">
@@ -120,6 +125,11 @@
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
                 </x-form-field>
 
+                <x-form-field label="Puesto" name="form.position">
+                    <input type="text" wire:model="form.position" placeholder="Mesero, Cocinero, Cajero…"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                </x-form-field>
+
                 <x-form-field label="Gerente" name="form.manager_name">
                     <input type="text" wire:model="form.manager_name" placeholder="Nombre del gerente directo"
                         class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
@@ -149,6 +159,78 @@
                         </x-form-field>
                     </div>
                 @endif
+            </div>
+        </div>
+
+        {{-- SALARIO (solo Super/Admin) --}}
+        @can('view-salary')
+            <div class="border-t border-gray-200 pt-4 dark:border-white/10">
+                <h4 class="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                    <i class="fa-thin fa-money-bill mr-1"></i> Salario
+                </h4>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <x-form-field label="Salario bruto" name="form.salary_gross">
+                        <input type="number" step="0.01" min="0" wire:model="form.salary_gross" placeholder="0.00"
+                            class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                    </x-form-field>
+
+                    <x-form-field label="Salario neto" name="form.salary_net">
+                        <input type="number" step="0.01" min="0" wire:model="form.salary_net" placeholder="0.00"
+                            class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                    </x-form-field>
+
+                    <x-form-field label="Periodicidad" name="form.salary_period">
+                        <select wire:model="form.salary_period"
+                            class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                            <option value="">Selecciona…</option>
+                            <option value="Semanal">Semanal</option>
+                            <option value="Quincenal">Quincenal</option>
+                            <option value="Mensual">Mensual</option>
+                        </select>
+                    </x-form-field>
+                </div>
+                <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+                    Información sensible. Solo visible para roles Super y Admin.
+                </p>
+            </div>
+        @endcan
+
+        {{-- BENEFICIARIO --}}
+        <div class="border-t border-gray-200 pt-4 dark:border-white/10">
+            <h4 class="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                <i class="fa-thin fa-user-shield mr-1"></i> Beneficiario
+            </h4>
+            <p class="mb-3 text-[11px] text-gray-500 dark:text-gray-400">
+                Persona designada para recibir salarios y prestaciones devengadas (LFT art. 501).
+            </p>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <x-form-field label="Nombre" name="form.beneficiary_name">
+                    <input type="text" wire:model="form.beneficiary_name" placeholder="Nombre completo"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                </x-form-field>
+
+                <x-form-field label="Parentesco" name="form.beneficiary_relationship">
+                    <select wire:model="form.beneficiary_relationship"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                        <option value="">Selecciona…</option>
+                        <option value="Padre">Padre</option>
+                        <option value="Madre">Madre</option>
+                        <option value="Hermano(a)">Hermano(a)</option>
+                        <option value="Conyuge">Cónyuge</option>
+                        <option value="Hijo(a)">Hijo(a)</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </x-form-field>
+
+                <x-form-field label="Teléfono" name="form.beneficiary_phone">
+                    <input type="tel" wire:model="form.beneficiary_phone" placeholder="55 1234 5678"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                </x-form-field>
+
+                <x-form-field label="Porcentaje (%)" name="form.beneficiary_percentage">
+                    <input type="number" step="0.01" min="0" max="100" wire:model="form.beneficiary_percentage"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-white/15 dark:bg-gray-900 dark:text-gray-100">
+                </x-form-field>
             </div>
         </div>
 

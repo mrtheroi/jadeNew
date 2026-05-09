@@ -67,6 +67,8 @@ class PurchaseOrdersController extends Component
     {
         $this->detailOc = PurchaseOrder::with([
             'supplies.category.expenseType',
+            'supplies.requester',
+            'supplies.approver',
             'creator',
         ])->findOrFail($id);
 

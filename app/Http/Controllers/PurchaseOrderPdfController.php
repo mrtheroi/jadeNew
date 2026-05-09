@@ -12,6 +12,8 @@ class PurchaseOrderPdfController extends Controller
     {
         $purchaseOrder->load([
             'supplies.category.expenseType',
+            'supplies.requester',
+            'supplies.approver',
             'creator',
         ]);
 
@@ -22,7 +24,7 @@ class PurchaseOrderPdfController extends Controller
         $pdf = Pdf::loadView('reports.purchase-order-pdf', [
             'oc' => $purchaseOrder,
             'byProvider' => $byProvider,
-        ])->setPaper('letter');
+        ])->setPaper('letter', 'landscape');
 
         $filename = sprintf('%s.pdf', $purchaseOrder->oc_number);
 

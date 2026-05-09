@@ -70,6 +70,13 @@
                                             <div class="text-[11px] text-gray-500 dark:text-gray-400">
                                                 {{ $supply->payment_type ?? '—' }} · {{ ucfirst($supply->status ?? '—') }}
                                             </div>
+                                            <div class="text-[11px] text-gray-500 dark:text-gray-400">
+                                                <span class="font-semibold text-gray-600 dark:text-gray-300">Solicitó:</span>
+                                                {{ $supply->requester?->full_name ?? '—' }}
+                                                <span class="mx-1 text-gray-400">·</span>
+                                                <span class="font-semibold text-gray-600 dark:text-gray-300">Aprobó:</span>
+                                                {{ $supply->approver?->full_name ?? '—' }}
+                                            </div>
                                         </div>
                                         <div class="font-semibold text-gray-900 dark:text-white">
                                             $ {{ number_format((float) $supply->amount, 2) }}

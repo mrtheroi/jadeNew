@@ -8,6 +8,8 @@ use App\Livewire\Concerns\HasSearchFilter;
 use App\Livewire\ConfirmModal;
 use App\Livewire\HumanResources\Forms\EmployeeForm;
 use App\Models\Employee;
+use App\Services\EmployeeNumberGenerator;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -63,13 +65,25 @@ class EmployeesController extends Component
         $this->open = true;
     }
 
-    public function save(): void
+    public function save(EmployeeNumberGenerator $generator): void
     {
+        // En altas, el employee_number se asigna automáticamente con formato WYB-XXXX
+        // (no es editable por el usuario). En edición se conserva el original.
+        if ($this->form->selected_id === null) {
+            $this->form->employee_number = $generator->next();
+        }
+
         $validated = $this->form->validate();
 
         // Si quedó como activo, limpiamos terminated_at por consistencia.
         if ($this->form->is_active) {
             $validated['terminated_at'] = null;
+        }
+
+        // Privacidad de salario: si el usuario no tiene la gate, descartamos los campos
+        // (defensa en profundidad sobre el guard de UI con @can).
+        if (Auth::user()?->cannot('view-salary')) {
+            unset($validated['salary_gross'], $validated['salary_net'], $validated['salary_period']);
         }
 
         Employee::updateOrCreate(

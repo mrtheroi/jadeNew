@@ -1,4 +1,4 @@
-# Jade v1.6.1
+# Jade v1.8.0
 Sistema de gestion financiera y reportes de ventas para restaurantes multi-unidad (Jade, Jade Orgánico, KIN). Permite registrar ventas diarias mediante extraccion automatica de PDFs via LlamaIndex Cloud, controlar gastos e insumos, y generar reportes financieros exportables en Excel y PDF.
 
 > Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
@@ -134,6 +134,7 @@ app/
 │   ├── Controllers/
 │   │   ├── Controller.php                     # Controlador base
 │   │   ├── DashboardExportController.php      # Exportacion del dashboard a Excel y PDF
+│   │   ├── EmployeeContractPdfController.php  # Genera on-demand el contrato laboral del empleado en PDF
 │   │   ├── PurchaseOrderPdfController.php     # Genera el PDF de una OC con dompdf
 │   │   └── Api/
 │   │       └── LlamaWebhookController.php     # Receptor del webhook de LlamaIndex
@@ -160,28 +161,28 @@ app/
 │   │   ├── CategoryController.php             # CRUD de categorias de gasto
 │   │   ├── ExpenseTypeController.php          # CRUD de tipos de gasto
 │   │   ├── PurchaseOrdersController.php       # Listado, detalle y anulacion de OCs
-│   │   ├── SuppliesController.php             # CRUD de gastos/insumos con exportacion y bloqueo por OC
+│   │   ├── SuppliesController.php             # CRUD de gastos/insumos con exportacion, bloqueo por OC y backfill de solicitante/aprobador
 │   │   └── Forms/
 │   │       ├── CategoryForm.php               # Form de categoria
 │   │       ├── ExpenseTypeForm.php            # Form de tipo de gasto
-│   │       └── SupplyForm.php                 # Form de gasto/insumo
+│   │       └── SupplyForm.php                 # Form de gasto/insumo (con solicitante y aprobador)
 │   ├── Users/
 │   │   ├── UserController.php                 # CRUD de usuarios con roles y permisos
 │   │   └── Forms/
 │   │       └── UserForm.php                   # Form de usuario con asignacion de rol
 │   └── HumanResources/                        # Modulo de Recursos Humanos
-│       ├── EmployeesController.php            # CRUD de empleados con filtros y cards
+│       ├── EmployeesController.php            # CRUD de empleados con filtros, cards, autonumeración WYB-XXXX y descarga de contrato
 │       └── Forms/
-│           └── EmployeeForm.php               # Form de empleado (4 secciones, 21 campos)
+│           └── EmployeeForm.php               # Form de empleado (6 secciones, 29 campos — incluye puesto, salario, beneficiario)
 ├── Models/
 │   ├── CashExtraction.php                     # Corte de caja: desglose efectivo/tarjeta por turno
 │   ├── Category.php                           # Categoria de gasto (unidad, tipo, proveedor)
 │   ├── DailySale.php                          # Venta diaria: ventas, metodos de pago, propinas, datos operativos
-│   ├── Employee.php                           # Empleado de RRHH con scopes activo/inactivo y accessor de edad
+│   ├── Employee.php                           # Empleado de RRHH con salario, beneficiario, helpers de contrato (dailySalary, dailySalaryInWords, companyData)
 │   ├── ExpenseType.php                        # Tipo de gasto (Luz, Renta, etc.)
 │   ├── IncomePeriod.php                       # Ingreso mensual por unidad de negocio
 │   ├── PurchaseOrder.php                      # OC postmortem con relacion a supplies y creator
-│   ├── Supply.php                             # Gasto/insumo con relacion a OC y helper isLocked()
+│   ├── Supply.php                             # Gasto/insumo con relaciones a OC, solicitante y aprobador; helper isLocked()
 │   └── User.php                               # Usuario con roles Spatie y soporte 2FA
 ├── Providers/
 │   ├── AppServiceProvider.php                 # Service provider principal
@@ -190,6 +191,7 @@ app/
 └── Services/
     ├── LlamaIndexService.php                  # Cliente HTTP para LlamaIndex Cloud API
     ├── DailySaleExtractionMapper.php          # Mapeo de JSON LlamaIndex a campos de daily_sales
+    ├── EmployeeNumberGenerator.php            # Genera el siguiente employee_number en formato WYB-XXXX
     ├── PurchaseOrderGenerator.php             # Servicio: genera OC para un dia (presente o pasado), anula OC liberando supplies
     └── Reports/
         └── ExpensesReportService.php          # Logica de generacion de reportes de gastos (Excel/PDF)
@@ -198,6 +200,7 @@ config/
 ├── app.php                                    # Configuracion general de la aplicacion
 ├── auth.php                                   # Guards y providers de autenticacion
 ├── cache.php                                  # Configuracion de cache
+├── company.php                                # Datos legales de empresa por unidad de negocio (razon social, RFC, apoderado)
 ├── database.php                               # Conexiones de base de datos
 ├── dompdf.php                                 # Configuracion de DomPDF para generacion de PDFs
 ├── filesystems.php                            # Discos de almacenamiento
@@ -229,7 +232,9 @@ database/
 │   ├── 2026_03_04_..._create_daily_sales_table.php
 │   ├── 2026_05_08_..._create_employees_table.php
 │   ├── 2026_05_08_..._create_purchase_orders_table.php
-│   └── 2026_05_08_..._add_purchase_order_id_to_supplies_table.php
+│   ├── 2026_05_08_..._add_purchase_order_id_to_supplies_table.php
+│   ├── 2026_05_09_..._add_requester_and_approver_to_supplies_table.php
+│   └── 2026_05_09_..._add_position_salary_and_beneficiary_to_employees_table.php
 └── seeders/
     ├── DatabaseSeeder.php                     # Seeder principal
     └── RolSeeder.php                          # Roles (Super, Admin, User) y permisos
@@ -310,6 +315,8 @@ resources/views/
 ├── partials/
 │   ├── head.blade.php                         # Head HTML (meta, scripts, styles)
 │   └── settings-heading.blade.php             # Encabezado de paginas de settings
+├── employees/
+│   └── contract-pdf.blade.php                 # Template PDF del Contrato Individual de Trabajo (cláusulas, firmas)
 ├── reports/
 │   ├── expenses-pdf.blade.php                 # Template PDF del reporte de gastos
 │   └── purchase-order-pdf.blade.php           # Template PDF de OC (encabezado, agrupado por proveedor, firma)
@@ -332,9 +339,12 @@ tests/
 │   │   └── TwoFactorChallengeTest.php         # Tests de autenticacion 2FA
 │   ├── DailySalesTest.php                     # Tests de ventas diarias
 │   ├── DashboardTest.php                      # Tests del dashboard
+│   ├── EmployeeContractTest.php               # Tests del PDF del contrato + helpers (dailySalary, gate view-salary)
+│   ├── EmployeeNumberGeneratorTest.php        # Tests del generador de WYB-XXXX (orden numerico, ignora historicos no-WYB)
 │   ├── EmployeesCrudTest.php                  # Tests del CRUD de empleados (modelo, query, Livewire)
 │   ├── ExampleTest.php                        # Test de ejemplo
 │   ├── PurchaseOrdersTest.php                 # Tests de OCs (generador, inmutabilidad, anulacion, Livewire)
+│   ├── SupplyRequesterApproverTest.php        # Tests de solicitante/aprobador (validacion, backfill, render OC)
 │   └── Settings/
 │       ├── PasswordUpdateTest.php             # Tests de actualizacion de contrasena
 │       ├── ProfileUpdateTest.php              # Tests de actualizacion de perfil
@@ -389,7 +399,7 @@ vendor/bin/pint
 
 ## Version
 
-**v1.6.1** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
+**v1.8.0** — Ver [CHANGELOG.md](CHANGELOG.md) para el historial completo de cambios.
 
 ## Licencia
 MIT

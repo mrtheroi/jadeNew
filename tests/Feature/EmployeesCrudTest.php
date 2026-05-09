@@ -107,11 +107,10 @@ test('totalsByUnit groups active employees by business_unit', function () {
 
 // ─── LIVEWIRE: CRUD ──────────────────────────────────────────────────────
 
-test('can create an employee from the controller', function () {
+test('can create an employee from the controller — number is auto-assigned WYB-XXXX', function () {
     Livewire::actingAs($this->user)
         ->test(EmployeesController::class)
         ->call('create')
-        ->set('form.employee_number', 'EMP-9999')
         ->set('form.full_name', 'Nuevo Empleado')
         ->set('form.business_unit', 'Jade')
         ->set('form.nationality', 'Mexicana')
@@ -119,22 +118,36 @@ test('can create an employee from the controller', function () {
         ->call('save')
         ->assertHasNoErrors();
 
-    expect(Employee::where('employee_number', 'EMP-9999')->exists())->toBeTrue();
+    $employee = Employee::where('full_name', 'Nuevo Empleado')->first();
+
+    expect($employee)->not->toBeNull();
+    expect($employee->employee_number)->toMatch('/^WYB-\d{4}$/');
 });
 
-test('cannot create employee with duplicated employee_number', function () {
-    Employee::factory()->create(['employee_number' => 'EMP-DUP']);
+test('consecutive employee creates produce sequential WYB numbers', function () {
+    Livewire::actingAs($this->user)
+        ->test(EmployeesController::class)
+        ->call('create')
+        ->set('form.full_name', 'Primero')
+        ->set('form.business_unit', 'Jade')
+        ->set('form.nationality', 'Mexicana')
+        ->set('form.children_count', 0)
+        ->call('save');
 
     Livewire::actingAs($this->user)
         ->test(EmployeesController::class)
         ->call('create')
-        ->set('form.employee_number', 'EMP-DUP')
-        ->set('form.full_name', 'Otro Empleado')
+        ->set('form.full_name', 'Segundo')
         ->set('form.business_unit', 'Jade')
         ->set('form.nationality', 'Mexicana')
         ->set('form.children_count', 0)
-        ->call('save')
-        ->assertHasErrors(['form.employee_number']);
+        ->call('save');
+
+    $first = Employee::where('full_name', 'Primero')->first()->employee_number;
+    $second = Employee::where('full_name', 'Segundo')->first()->employee_number;
+
+    expect($first)->toBe('WYB-0001');
+    expect($second)->toBe('WYB-0002');
 });
 
 test('business_unit is required on create', function () {

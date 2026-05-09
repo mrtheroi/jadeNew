@@ -301,6 +301,15 @@
                                         >
                                             <i class="fa-thin fa-pen"></i>
                                         </button>
+                                        <a
+                                            href="{{ route('rrhh.empleados.contrato.pdf', $employee->id) }}"
+                                            target="_blank"
+                                            class="group relative inline-flex items-center justify-center rounded-md p-2 text-rose-600 hover:bg-rose-50 transition
+                                                   dark:text-rose-300 dark:hover:bg-rose-900/30"
+                                            aria-label="Descargar contrato"
+                                        >
+                                            <i class="fa-thin fa-file-pdf"></i>
+                                        </a>
                                         <button
                                             type="button"
                                             wire:click="deleteConfirmation({{ $employee->id }})"

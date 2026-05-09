@@ -3,10 +3,11 @@
 namespace Database\Factories;
 
 use App\Models\Category;
+use App\Models\Supply;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Supply>
+ * @extends Factory<Supply>
  */
 class SupplyFactory extends Factory
 {
@@ -16,6 +17,8 @@ class SupplyFactory extends Factory
 
         return [
             'category_id' => Category::factory(),
+            'requester_id' => null,
+            'approver_id' => null,
             'amount' => $this->faker->randomFloat(2, 100, 50000),
             'payment_type' => $this->faker->randomElement(['efectivo', 'transferencia', 'tarjeta_credito', 'tarjeta_debito', 'cheque', 'otro']),
             'payment_date' => $date,
