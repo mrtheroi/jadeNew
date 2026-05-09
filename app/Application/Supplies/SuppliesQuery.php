@@ -182,12 +182,13 @@ class SuppliesQuery
             ->first();
     }
 
-    public function searchCategories(string $term)
+    public function searchCategories(string $term, ?string $businessUnit = null)
     {
         $term = strtoupper(trim($term));
 
         return Category::query()
             ->with('expenseType')
+            ->when($businessUnit, fn ($q) => $q->where('business_unit', $businessUnit))
             ->where(function ($q) use ($term) {
                 $q->where('expense_name', 'like', "%{$term}%")
                     ->orWhere('provider_name', 'like', "%{$term}%")

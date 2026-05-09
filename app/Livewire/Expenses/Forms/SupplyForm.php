@@ -10,6 +10,9 @@ class SupplyForm extends Form
 {
     public ?int $supplyId = null;
 
+    #[Rule('required|in:Jade,Fuego Ambar,KIN')]
+    public string $business_unit = '';
+
     #[Rule('required|exists:categories,id')]
     public string $category_id = '';
 
@@ -41,6 +44,7 @@ class SupplyForm extends Form
     public function fillFromModel(Supply $supply): void
     {
         $this->supplyId = $supply->id;
+        $this->business_unit = $supply->category?->business_unit ?? '';
         $this->category_id = (string) $supply->category_id;
         $this->is_adjustment = ((float) $supply->amount) < 0;
         $this->amount = (string) abs((float) $supply->amount);

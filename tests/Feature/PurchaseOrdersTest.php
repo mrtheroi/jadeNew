@@ -1,6 +1,6 @@
 <?php
 
-use App\Domain\BusinessUnit;
+use App\Application\Supplies\SuppliesQuery;
 use App\Livewire\Expenses\PurchaseOrdersController;
 use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
@@ -214,10 +214,30 @@ test('previewGeneratePurchaseOrder requires a business_unit', function () {
         ->assertSet('showGenerateOcModal', false);
 });
 
-test('SuppliesController initializes business_unit to first enum case on mount', function () {
+test('SuppliesController mounts with empty business_unit so table shows all units', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
-        ->assertSet('business_unit', BusinessUnit::cases()[0]->value);
+        ->assertSet('business_unit', '');
+});
+
+test('Supplies table shows records of all units by default (no business_unit filter)', function () {
+    $today = Carbon::today();
+
+    Supply::factory()->create([
+        'category_id' => $this->categoryJade->id,
+        'amount' => 100,
+        'payment_date' => $today,
+    ]);
+    Supply::factory()->create([
+        'category_id' => $this->categoryKin->id,
+        'amount' => 200,
+        'payment_date' => $today,
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->assertSet('business_unit', '')
+        ->assertViewHas('supplies', fn ($supplies) => $supplies->total() === 2);
 });
 
 test('previewGeneratePurchaseOrder defaults preview date to today', function () {
@@ -305,6 +325,7 @@ test('confirmGeneratePurchaseOrder creates OC for past date when user changes oc
 test('SupplyForm requires payment_date when saving', function () {
     Livewire::actingAs($this->user)
         ->test(SuppliesController::class)
+        ->set('form.business_unit', 'Jade')
         ->set('form.category_id', (string) $this->categoryJade->id)
         ->set('form.amount', '100')
         ->set('form.payment_date', null)
@@ -313,6 +334,74 @@ test('SupplyForm requires payment_date when saving', function () {
         ->assertHasErrors(['form.payment_date' => 'required']);
 
     expect(Supply::count())->toBe(0);
+});
+
+test('SupplyForm requires business_unit when saving', function () {
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('form.business_unit', '')
+        ->set('form.category_id', (string) $this->categoryJade->id)
+        ->set('form.amount', '100')
+        ->set('form.payment_date', Carbon::today()->toDateString())
+        ->set('form.status', 'pendiente')
+        ->call('save')
+        ->assertHasErrors(['form.business_unit' => 'required']);
+
+    expect(Supply::count())->toBe(0);
+});
+
+test('save rejects mismatch between form business_unit and category business_unit', function () {
+    // categoryJade es Jade, intentamos guardarlo como KIN — debe rechazar.
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('form.business_unit', 'KIN')
+        ->set('form.category_id', (string) $this->categoryJade->id)
+        ->set('form.amount', '100')
+        ->set('form.payment_date', Carbon::today()->toDateString())
+        ->set('form.status', 'pendiente')
+        ->call('save')
+        ->assertHasErrors('form.category_id');
+
+    expect(Supply::count())->toBe(0);
+});
+
+test('updatedFormBusinessUnit clears category selection', function () {
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->set('form.business_unit', 'Jade')
+        ->set('form.category_id', (string) $this->categoryJade->id)
+        ->set('categorySearch', '[Jade] FRUTAS — CHEDRAUI')
+        ->set('form.business_unit', 'KIN')
+        ->assertSet('form.category_id', '')
+        ->assertSet('categorySearch', '');
+});
+
+test('searchCategories filters by business_unit when provided', function () {
+    $query = app(SuppliesQuery::class);
+
+    $jade = $query->searchCategories('FRUTAS', 'Jade');
+    expect($jade->pluck('business_unit')->unique()->all())->toEqual(['Jade']);
+
+    $kin = $query->searchCategories('CARNES', 'KIN');
+    expect($kin->pluck('business_unit')->unique()->all())->toEqual(['KIN']);
+
+    // Sin filtro de unidad: trae todas las matcheables (compatibilidad).
+    $all = $query->searchCategories('CHEDRAUI', null);
+    expect($all)->not->toBeEmpty();
+});
+
+test('edit fills form business_unit from supply category', function () {
+    $supply = Supply::factory()->create([
+        'category_id' => $this->categoryKin->id,
+        'amount' => 50,
+        'payment_date' => Carbon::today(),
+    ]);
+
+    Livewire::actingAs($this->user)
+        ->test(SuppliesController::class)
+        ->call('edit', $supply->id)
+        ->assertSet('form.business_unit', 'KIN')
+        ->assertSet('form.category_id', (string) $this->categoryKin->id);
 });
 
 test('previewGeneratePurchaseOrder shows preview when there are eligible supplies', function () {

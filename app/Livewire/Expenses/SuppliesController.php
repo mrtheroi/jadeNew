@@ -4,10 +4,10 @@ namespace App\Livewire\Expenses;
 
 use App\Application\Helpers\PeriodRange;
 use App\Application\Supplies\SuppliesQuery;
-use App\Domain\BusinessUnit;
 use App\Livewire\Concerns\HasModalCrud;
 use App\Livewire\Concerns\HasSearchFilter;
 use App\Livewire\Expenses\Forms\SupplyForm;
+use App\Models\Category;
 use App\Models\Supply;
 use App\Services\PurchaseOrderGenerator;
 use App\Services\Reports\ExpensesReportService;
@@ -72,10 +72,6 @@ class SuppliesController extends Component
     public function mount(): void
     {
         $this->period_key = now()->format('Y-m');
-
-        if ($this->business_unit === '') {
-            $this->business_unit = BusinessUnit::cases()[0]->value;
-        }
     }
 
     public function updatedBusinessUnit(): void
@@ -240,7 +236,7 @@ class SuppliesController extends Component
 
     public function edit(int $id): void
     {
-        $supply = Supply::with('purchaseOrder')->findOrFail($id);
+        $supply = Supply::with(['purchaseOrder', 'category.expenseType'])->findOrFail($id);
 
         if ($supply->isLocked()) {
             $this->dispatch('notify', message: 'Esta compra está asociada a una OC cerrada y no puede editarse. Anulá la OC para liberarla.', type: 'warning');
@@ -248,14 +244,49 @@ class SuppliesController extends Component
             return;
         }
 
+        $this->resetCategorySearch();
         $this->form->fillFromModel($supply);
+        $this->categorySearch = $this->buildCategoryLabel($supply->category);
         $this->open = true;
+    }
+
+    public function updatedFormBusinessUnit(): void
+    {
+        // Cambiar la unidad invalida la categoría seleccionada (no tiene sentido cross-unidad).
+        $this->form->category_id = '';
+        $this->resetCategorySearch();
+    }
+
+    private function buildCategoryLabel(?Category $cat): string
+    {
+        if (! $cat) {
+            return '';
+        }
+
+        $label = "[{$cat->business_unit}] ".($cat->expenseType?->expense_type_name ?? '—')." — {$cat->expense_name}";
+
+        if ($cat->provider_name) {
+            $label .= " · {$cat->provider_name}";
+        }
+
+        return $label;
     }
 
     // Guardar (create / update)
     public function save(): void
     {
         $validated = $this->form->validate();
+
+        // Validación cruzada: la categoría debe pertenecer a la unidad seleccionada.
+        $cat = Category::find($validated['category_id']);
+        if ($cat && $cat->business_unit !== $validated['business_unit']) {
+            $this->form->addError('category_id', 'La categoría seleccionada no pertenece a la unidad de negocio elegida.');
+
+            return;
+        }
+
+        // business_unit es sólo del form (filtra el dropdown de categoría); no se persiste en supplies.
+        unset($validated['business_unit']);
 
         // payment_month automatico
         if (! empty($validated['payment_date'])) {
@@ -396,7 +427,7 @@ class SuppliesController extends Component
     public function resetFilters(): void
     {
         $this->search = '';
-        $this->business_unit = BusinessUnit::cases()[0]->value;
+        $this->business_unit = '';
         $this->expense_type_id = '';
         $this->category_id = '';
         $this->period_key = now()->format('Y-m');
@@ -406,13 +437,19 @@ class SuppliesController extends Component
 
     public function updatedCategorySearch(SuppliesQuery $query): void
     {
+        if (! $this->form->business_unit) {
+            $this->categoryResults = [];
+
+            return;
+        }
+
         if (strlen($this->categorySearch) < 2) {
             $this->categoryResults = [];
 
             return;
         }
 
-        $this->categoryResults = $query->searchCategories($this->categorySearch)
+        $this->categoryResults = $query->searchCategories($this->categorySearch, $this->form->business_unit)
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'business_unit' => $c->business_unit,

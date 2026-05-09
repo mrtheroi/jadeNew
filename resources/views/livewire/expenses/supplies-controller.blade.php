@@ -97,6 +97,7 @@
                            focus:border-emerald-500 focus:ring-emerald-500
                            dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
                 >
+                    <option value="">Todas</option>
                     @foreach(\App\Domain\BusinessUnit::cases() as $bu)
                         <option value="{{ $bu->value }}">{{ $bu->value }}</option>
                     @endforeach
@@ -571,16 +572,32 @@
 
         <div class="p-4 space-y-4">
             <div class="grid gap-3 sm:grid-cols-2">
+                <x-form-field label="Unidad de negocio" name="form.business_unit">
+                    <select
+                        wire:model.live="form.business_unit"
+                        class="block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-xs text-gray-900 shadow-sm
+                               focus:border-emerald-500 focus:ring-emerald-500
+                               dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        <option value="">— Elegí una unidad —</option>
+                        @foreach(\App\Domain\BusinessUnit::cases() as $bu)
+                            <option value="{{ $bu->value }}">{{ $bu->value }}</option>
+                        @endforeach
+                    </select>
+                </x-form-field>
+
                 <x-form-field label="Categoría" name="form.category_id">
                     <div class="relative">
                         <input
                             type="text"
                             wire:model.live.debounce.300ms="categorySearch"
                             x-on:keydown.escape="$wire.set('categoryResults', [])"
-                            placeholder="Buscar categoría..."
+                            @disabled(! $form->business_unit)
+                            placeholder="{{ $form->business_unit ? 'Buscar categoría de '.$form->business_unit.'…' : 'Elegí una unidad primero' }}"
                             class="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs text-gray-900 shadow-sm
-                   focus:border-emerald-500 focus:ring-emerald-500
-                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100"
+                                   focus:border-emerald-500 focus:ring-emerald-500
+                                   disabled:bg-gray-50 disabled:cursor-not-allowed
+                                   dark:border-white/15 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800/50"
                         />
 
                         <div wire:loading wire:target="categorySearch" class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">

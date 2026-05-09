@@ -5,6 +5,26 @@ Todos los cambios notables del proyecto Jade serán documentados en este archivo
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
+## [1.6.0] - 2026-05-09
+
+### Agregado
+
+- **Selector obligatorio de unidad de negocio en el modal de creación/edición de Supplies**: el formulario ahora exige elegir la unidad ANTES de buscar categoría. Esto previene una clase entera de errores de input donde el usuario elegía una categoría de otra unidad por accidente y la compra terminaba contabilizada bajo la unidad equivocada (la unidad se hereda de `category.business_unit`)
+  - **Buscador de categorías filtrado**: `SuppliesQuery::searchCategories($term, ?string $businessUnit)` acepta unidad opcional. El input de búsqueda queda deshabilitado hasta que se elija unidad, y al seleccionar unidad sólo se devuelven categorías de esa unidad
+  - **Cambio de unidad invalida la categoría**: el hook `updatedFormBusinessUnit()` limpia `form.category_id` y `categorySearch` cuando cambia la unidad, evitando un estado inconsistente
+  - **Validación cruzada al guardar**: en `save()` se verifica que `category.business_unit === form.business_unit`. Si no coinciden (manipulación o estado raro) se rechaza con error en el campo categoría. Defensa en profundidad sobre el guard de UI
+  - **Edición**: al abrir un supply existente, la unidad se infiere de la categoría asociada y se prellena en el formulario, manteniendo coherencia visual del label completo de la categoría
+  - **Validación de regla**: `business_unit` pasa a ser `required|in:Jade,Fuego Ambar,KIN` en `SupplyForm`. No se persiste en la tabla `supplies` (la unidad sigue viviendo en `categories`); es sólo del form para guiar el flujo
+
+### Corregido
+
+- **Regresión multi-unidad en listado de Supplies**: el fix del «select fantasma» en 1.5.0 inicializaba `business_unit` al primer caso del enum (`Jade`) en `mount()`, lo que provocaba que la tabla filtrara por Jade desde el arranque y ocultara las compras de otras unidades. Una compra cargada para KIN o Fuego Ámbar simplemente no aparecía hasta cambiar manualmente el filtro de unidad. La causa raíz era haber mezclado dos requerimientos distintos en una sola decisión: el botón «Generar OC» necesita unidad seleccionada, pero la tabla NO debería filtrar por una unidad específica por defecto
+  - **Fix correcto**: `business_unit` vuelve a `''` por default; el `<select>` ahora incluye `<option value="">Todas</option>` como primera opción, lo que elimina el estado fantasma original (el modelo vacío matchea con una `<option>` real, sin discrepancia visual entre browser y servidor) y permite ver todas las compras al entrar
+  - **Botón «Generar OC»**: sigue apareciendo sólo cuando hay unidad seleccionada vía `@if($business_unit)`. La validación del flujo de generación queda intacta
+  - `resetFilters()` también vuelve al default vacío para mantener consistencia
+
+---
+
 ## [1.5.0] - 2026-05-08
 
 ### Agregado

@@ -1,7 +1,6 @@
 <?php
 
 use App\Application\Supplies\SuppliesQuery;
-use App\Domain\BusinessUnit;
 use App\Livewire\Expenses\SuppliesController;
 use App\Models\Category;
 use App\Models\ExpenseType;
@@ -248,7 +247,7 @@ test('resetFilters clears all filters', function () {
         ->set('category_id', (string) $this->frutas->id)
         ->call('resetFilters')
         ->assertSet('search', '')
-        ->assertSet('business_unit', BusinessUnit::cases()[0]->value)
+        ->assertSet('business_unit', '')
         ->assertSet('expense_type_id', '')
         ->assertSet('category_id', '')
         ->assertSet('period_key', now()->format('Y-m'));
